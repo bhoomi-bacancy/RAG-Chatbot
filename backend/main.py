@@ -7,9 +7,6 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     allowed_origins: str = "http://localhost:5173"
 
-    class Config:
-        env_file = ".env"
-
 settings = Settings()
 
 app = FastAPI(title="Inkira RAG API", version="2.0.0")
