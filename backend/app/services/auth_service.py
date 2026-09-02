@@ -1,5 +1,6 @@
 import bcrypt
-from jose import jwt, JWTError
+import jwt
+from jwt import InvalidTokenError
 from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -34,7 +35,7 @@ def decode_token(token: str):
             algorithms=[settings.jwt_algorithm],
         )
         return payload.get("sub")
-    except JWTError:
+    except InvalidTokenError:
         return None
 
 
