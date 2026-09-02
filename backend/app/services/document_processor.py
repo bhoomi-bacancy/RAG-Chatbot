@@ -20,9 +20,36 @@ def extract_text_from_pdf(file_bytes: bytes) -> List[Tuple[str, int]]:
 
 
 def extract_text_from_docx(file_bytes: bytes) -> List[Tuple[str, int]]:
-    doc = DocxDocument(io.BytesIO(file_bytes))
-    text = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
-    return [(text, 1)] if text.strip() else []
+    try:
+        doc = DocxDocument(io.BytesIO(file_bytes))
+        text = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+        if text.strip():
+            return [(text, 1)]
+    except Exception:
+        pass
+    # Fallback: read word/document.xml directly from the ZIP archive.
+    # Handles files with embedded media that have unknown content types.
+    return _extract_docx_via_xml(file_bytes)
+
+
+def _extract_docx_via_xml(file_bytes: bytes) -> List[Tuple[str, int]]:
+    import zipfile
+    import xml.etree.ElementTree as ET
+
+    ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+    try:
+        with zipfile.ZipFile(io.BytesIO(file_bytes)) as zf:
+            with zf.open("word/document.xml") as f:
+                tree = ET.parse(f)
+        paragraphs = []
+        for para in tree.findall(".//w:p", ns):
+            text = "".join(t.text or "" for t in para.findall(".//w:t", ns))
+            if text.strip():
+                paragraphs.append(text)
+        combined = "\n".join(paragraphs)
+        return [(combined, 1)] if combined.strip() else []
+    except Exception as e:
+        raise ValueError(f"Could not extract text from DOCX: {e}")
 
 
 def extract_text_from_txt(file_bytes: bytes) -> List[Tuple[str, int]]:

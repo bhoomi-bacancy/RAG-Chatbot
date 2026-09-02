@@ -2,12 +2,15 @@ from pathlib import Path
 from datetime import datetime, timezone
 import uuid
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
-from app.database import get_collection
+from app.database import add_chunks, delete_chunks
 from app.models import DocumentMetadata, UploadResponse
+from app.services.auth_service import get_current_user
 from app.services.document_processor import process_document
 from app.services.embedder import embed_texts
+from app.stores.chat_store import add_doc
+from app.supabase_client import get_supabase
 
 router = APIRouter()
 
@@ -16,7 +19,11 @@ MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
 @router.post("/upload", response_model=UploadResponse)
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(
+    file: UploadFile = File(...),
+    chat_id: str = Form(None),
+    current_user: dict = Depends(get_current_user),
+):
     ext = Path(file.filename).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
@@ -37,26 +44,42 @@ async def upload_document(file: UploadFile = File(...)):
         raise HTTPException(status_code=422, detail="No extractable text found in the document.")
 
     document_id = str(uuid.uuid4())
-    collection = get_collection()
-    uploaded_at = datetime.now(timezone.utc).isoformat()
+    user_id = current_user["id"]
 
+    # Generate embeddings for all chunk texts
     texts = [c["text"] for c in chunks]
     embeddings = embed_texts(texts)
 
-    collection.add(
-        ids=[f"{document_id}_{i}" for i in range(len(chunks))],
-        embeddings=embeddings,
-        documents=texts,
-        metadatas=[
-            {
-                "document_id": document_id,
-                "filename": file.filename,
-                "page_number": c["page_number"],
-                "uploaded_at": uploaded_at,
-            }
-            for c in chunks
-        ],
-    )
+    # Store chunks + embeddings in Supabase
+    chunk_records = [
+        {
+            "id": f"{document_id}_{i}",
+            "document_id": document_id,
+            "user_id": user_id,
+            "filename": file.filename,
+            "page_number": c["page_number"],
+            "content": c["text"],
+            "embedding": emb,
+        }
+        for i, (c, emb) in enumerate(zip(chunks, embeddings))
+    ]
+    add_chunks(chunk_records)
+
+    # Save document metadata
+    sb = get_supabase()
+    sb.table("documents").insert(
+        {
+            "id": document_id,
+            "user_id": user_id,
+            "chat_id": chat_id or None,
+            "filename": file.filename,
+            "file_type": ext,
+            "chunks_created": len(chunks),
+        }
+    ).execute()
+
+    if chat_id:
+        add_doc(user_id, chat_id, document_id)
 
     return UploadResponse(
         document_id=document_id,
@@ -67,41 +90,34 @@ async def upload_document(file: UploadFile = File(...)):
 
 
 @router.get("/", response_model=list[DocumentMetadata])
-async def list_documents():
-    collection = get_collection()
-    if collection.count() == 0:
-        return []
-
-    results = collection.get(include=["metadatas"])
-
-    seen: dict[str, dict] = {}
-    chunk_counts: dict[str, int] = {}
-
-    for meta in results["metadatas"]:
-        doc_id = meta.get("document_id", "")
-        if doc_id:
-            seen.setdefault(doc_id, meta)
-            chunk_counts[doc_id] = chunk_counts.get(doc_id, 0) + 1
-
+async def list_documents(current_user: dict = Depends(get_current_user)):
+    sb = get_supabase()
+    result = (
+        sb.table("documents")
+        .select("*")
+        .eq("user_id", current_user["id"])
+        .order("uploaded_at", desc=True)
+        .execute()
+    )
     return [
         DocumentMetadata(
-            id=doc_id,
-            filename=meta.get("filename", "Unknown"),
-            file_type=Path(meta.get("filename", "")).suffix.lower(),
-            chunk_count=chunk_counts.get(doc_id, 0),
-            uploaded_at=meta.get("uploaded_at", ""),
+            id=doc["id"],
+            filename=doc["filename"],
+            file_type=doc["file_type"],
+            chunk_count=doc["chunks_created"],
+            uploaded_at=doc["uploaded_at"],
         )
-        for doc_id, meta in seen.items()
+        for doc in (result.data or [])
     ]
 
 
 @router.delete("/{document_id}")
-async def delete_document(document_id: str):
-    collection = get_collection()
-    results = collection.get(where={"document_id": document_id}, include=["metadatas"])
+async def delete_document(document_id: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["id"]
 
-    if not results["ids"]:
-        raise HTTPException(status_code=404, detail="Document not found.")
+    delete_chunks(document_id, user_id)
 
-    collection.delete(ids=results["ids"])
-    return {"message": f"Deleted document and {len(results['ids'])} chunks."}
+    sb = get_supabase()
+    sb.table("documents").delete().eq("id", document_id).eq("user_id", user_id).execute()
+
+    return {"message": "Deleted document and all its chunks."}

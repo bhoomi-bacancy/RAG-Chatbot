@@ -1,159 +1,267 @@
-import { useEffect, useState } from 'react'
-import {
-  Activity,
-  FileText,
-  File,
-  AlignLeft,
-  Trash2,
-  CheckSquare,
-  Square,
-  RefreshCw,
-} from 'lucide-react'
-import UploadZone from './UploadZone'
-import { listDocuments, deleteDocument } from '../api/client'
+import { useEffect, useRef, useState } from 'react'
+import { Bot, Plus, Trash2, MessageSquare, LogOut, Pencil, Check, X } from 'lucide-react'
+import { listChats, createChat, deleteChat, renameChat } from '../api/client'
+import { useAuth } from '../contexts/AuthContext'
 
-const FILE_ICONS = {
-  '.pdf': FileText,
-  '.docx': File,
-  '.doc': File,
-  '.txt': AlignLeft,
+function timeAgo(dateStr) {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = Math.floor((now - date) / 1000)
+  if (diff < 60) return 'just now'
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-function ConfidenceBadge({ value }) {
-  const pct = Math.round(value * 100)
-  const color = pct >= 75 ? 'text-emerald-400' : pct >= 50 ? 'text-yellow-400' : 'text-red-400'
-  return <span className={`text-xs font-semibold ${color}`}>{pct}%</span>
+function groupChats(chats) {
+  const now = new Date()
+  const startOfToday    = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfYesterday = new Date(startOfToday.getTime() - 86400000)
+  const startOf7DaysAgo  = new Date(startOfToday.getTime() - 6 * 86400000)
+  const groups = { Today: [], Yesterday: [], 'Previous 7 days': [], Older: [] }
+  for (const chat of chats) {
+    const d = new Date(chat.updated_at || chat.created_at)
+    if (d >= startOfToday)      groups.Today.push(chat)
+    else if (d >= startOfYesterday) groups.Yesterday.push(chat)
+    else if (d >= startOf7DaysAgo)  groups['Previous 7 days'].push(chat)
+    else groups.Older.push(chat)
+  }
+  return groups
 }
 
-export default function Sidebar({ selectedDocIds, onSelectionChange, onDocumentsChange }) {
-  const [documents, setDocuments] = useState([])
-  const [loading, setLoading] = useState(false)
+/* ── Inline-editable chat row ─────────────────────────────────────────────── */
+function ChatRow({ chat, isActive, onSelect, onDelete, onRename, deletingId }) {
+  const [hovered,  setHovered]  = useState(false)
+  const [editing,  setEditing]  = useState(false)
+  const [draft,    setDraft]    = useState(chat.title)
+  const [saving,   setSaving]   = useState(false)
+  const inputRef = useRef(null)
 
-  const fetchDocs = async () => {
-    setLoading(true)
+  // Focus input when entering edit mode
+  useEffect(() => {
+    if (editing) inputRef.current?.select()
+  }, [editing])
+
+  const startEdit = e => {
+    e.stopPropagation()
+    setDraft(chat.title)
+    setEditing(true)
+  }
+
+  const cancelEdit = e => {
+    e?.stopPropagation()
+    setDraft(chat.title)
+    setEditing(false)
+  }
+
+  const commitEdit = async e => {
+    e?.stopPropagation()
+    const trimmed = draft.trim()
+    if (!trimmed || trimmed === chat.title) { setEditing(false); return }
+    setSaving(true)
     try {
-      const { data } = await listDocuments()
-      setDocuments(data)
-      onDocumentsChange(data)
+      await onRename(chat.id, trimmed)
     } finally {
-      setLoading(false)
+      setSaving(false)
+      setEditing(false)
     }
   }
 
-  useEffect(() => { fetchDocs() }, [])
-
-  const handleUploaded = doc => {
-    fetchDocs()
-  }
-
-  const handleDelete = async id => {
-    await deleteDocument(id)
-    const updated = documents.filter(d => d.id !== id)
-    setDocuments(updated)
-    onDocumentsChange(updated)
-    onSelectionChange(prev => prev.filter(x => x !== id))
-  }
-
-  const toggleSelect = id => {
-    onSelectionChange(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    )
+  const handleKeyDown = e => {
+    if (e.key === 'Enter')  { e.preventDefault(); commitEdit(e) }
+    if (e.key === 'Escape') cancelEdit(e)
   }
 
   return (
-    <aside className="w-72 bg-slate-800 flex flex-col border-r border-slate-700 shrink-0">
-      {/* Logo */}
-      <div className="px-4 py-5 border-b border-slate-700">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-medical-500 flex items-center justify-center shrink-0">
-            <Activity className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-white font-bold text-base leading-tight">MedAssist</h1>
-            <p className="text-slate-400 text-xs">RAG Medical Chatbot</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Upload */}
-      <div className="border-b border-slate-700">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide px-4 pt-4 pb-2">
-          Upload Document
-        </p>
-        <UploadZone onUploaded={handleUploaded} />
-      </div>
-
-      {/* Document List */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="flex items-center justify-between px-4 pt-4 pb-2">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
-            Documents ({documents.length})
-          </p>
+    <div
+      onClick={() => !editing && onSelect(chat.id)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`flex items-center mx-2 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+        isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+      }`}
+    >
+      {editing ? (
+        /* ── Edit mode ── */
+        <div className="flex items-center gap-1.5 flex-1 min-w-0" onClick={e => e.stopPropagation()}>
+          <input
+            ref={inputRef}
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={commitEdit}
+            disabled={saving}
+            className="flex-1 min-w-0 bg-zinc-700 text-white text-sm rounded px-2 py-0.5 outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-60"
+          />
           <button
-            onClick={fetchDocs}
-            className="text-slate-500 hover:text-slate-300 transition-colors"
-            title="Refresh"
+            onMouseDown={commitEdit}
+            disabled={saving}
+            className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-green-400 hover:text-green-300 hover:bg-zinc-700 transition"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <Check className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onMouseDown={cancelEdit}
+            className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700 transition"
+          >
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
+      ) : (
+        /* ── Normal mode ── */
+        <>
+          <div className="flex-1 min-w-0 mr-1.5">
+            <p className="text-sm font-medium truncate">{chat.title}</p>
+            <p className="text-xs text-zinc-600 mt-0.5">{timeAgo(chat.updated_at || chat.created_at)}</p>
+          </div>
 
-        {documents.length === 0 ? (
-          <p className="text-slate-500 text-xs text-center px-4 py-6 leading-relaxed">
-            No documents yet.<br />Upload a PDF, DOCX, or TXT file to get started.
-          </p>
+          {/* Action buttons — shown on hover or when active */}
+          {(hovered || isActive) && (
+            <div className="flex items-center gap-0.5 shrink-0" onClick={e => e.stopPropagation()}>
+              <button
+                onClick={startEdit}
+                title="Rename"
+                className="w-6 h-6 flex items-center justify-center rounded text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700 transition"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={e => onDelete(e, chat.id)}
+                disabled={deletingId === chat.id}
+                title="Delete"
+                className="w-6 h-6 flex items-center justify-center rounded text-zinc-500 hover:text-red-400 hover:bg-zinc-700 transition"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+/* ── Sidebar ──────────────────────────────────────────────────────────────── */
+export default function Sidebar({ currentChatId, chats, setChats, onSelectChat, onNewChat }) {
+  const { user, logout } = useAuth()
+  const [deletingId,   setDeletingId]   = useState(null)
+  const [creatingChat, setCreatingChat] = useState(false)
+
+  useEffect(() => {
+    listChats()
+      .then(({ data }) => {
+        const sorted = [...data].sort(
+          (a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)
+        )
+        setChats(sorted)
+      })
+      .catch(() => {})
+  }, [setChats])
+
+  const handleNewChat = async () => {
+    if (creatingChat) return
+    setCreatingChat(true)
+    try {
+      const { data } = await createChat('New Chat')
+      setChats(prev => [data, ...prev])
+      onNewChat(data.id)
+    } catch { } finally { setCreatingChat(false) }
+  }
+
+  const handleDelete = async (e, id) => {
+    e.stopPropagation()
+    setDeletingId(id)
+    try {
+      await deleteChat(id)
+      setChats(prev => prev.filter(c => c.id !== id))
+      if (currentChatId === id) onSelectChat(null)
+    } catch { } finally { setDeletingId(null) }
+  }
+
+  const handleRename = async (id, title) => {
+    await renameChat(id, title)
+    setChats(prev => prev.map(c => c.id === id ? { ...c, title } : c))
+  }
+
+  const groups = groupChats(chats)
+
+  return (
+    <div className="w-64 bg-zinc-950 flex flex-col h-full border-r border-zinc-800 flex-shrink-0">
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-4 border-b border-zinc-800">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+            <Bot className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-white font-semibold text-sm tracking-tight">Inkira</span>
+        </div>
+        <button
+          onClick={handleNewChat}
+          disabled={creatingChat}
+          title="New chat"
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition disabled:opacity-50"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Chat list */}
+      <div className="flex-1 overflow-y-auto py-2">
+        {chats.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <MessageSquare className="w-8 h-8 text-zinc-700 mb-3" />
+            <p className="text-zinc-500 text-xs">No chats yet</p>
+            <p className="text-zinc-600 text-xs mt-1">Click + to start a conversation</p>
+          </div>
         ) : (
-          <ul className="space-y-1 px-2 pb-4">
-            {documents.map(doc => {
-              const Icon = FILE_ICONS[doc.file_type] || FileText
-              const isSelected = selectedDocIds.includes(doc.id)
-              return (
-                <li
-                  key={doc.id}
-                  className={`rounded-lg px-2 py-2.5 group transition-colors cursor-pointer
-                    ${isSelected ? 'bg-medical-900/60 border border-medical-700' : 'hover:bg-slate-700'}`}
-                  onClick={() => toggleSelect(doc.id)}
-                >
-                  <div className="flex items-start gap-2">
-                    <div className="mt-0.5 shrink-0">
-                      {isSelected
-                        ? <CheckSquare className="w-4 h-4 text-medical-400" />
-                        : <Square className="w-4 h-4 text-slate-500 group-hover:text-slate-400" />
-                      }
-                    </div>
-                    <Icon className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-slate-200 font-medium truncate">{doc.filename}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{doc.chunk_count} chunks</p>
-                    </div>
-                    <button
-                      onClick={e => { e.stopPropagation(); handleDelete(doc.id) }}
-                      className="shrink-0 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-all"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
+          Object.entries(groups).map(([label, items]) => {
+            if (!items.length) return null
+            return (
+              <div key={label} className="mb-2">
+                <p className="px-4 py-1.5 text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  {label}
+                </p>
+                {items.map(chat => (
+                  <ChatRow
+                    key={chat.id}
+                    chat={chat}
+                    isActive={chat.id === currentChatId}
+                    onSelect={onSelectChat}
+                    onDelete={handleDelete}
+                    onRename={handleRename}
+                    deletingId={deletingId}
+                  />
+                ))}
+              </div>
+            )
+          })
         )}
       </div>
 
-      {/* Filter notice */}
-      {selectedDocIds.length > 0 && (
-        <div className="border-t border-slate-700 px-4 py-3">
-          <p className="text-xs text-medical-300 text-center">
-            Searching {selectedDocIds.length} selected doc{selectedDocIds.length > 1 ? 's' : ''}
-          </p>
-          <button
-            onClick={() => onSelectionChange([])}
-            className="w-full mt-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
-          >
-            Clear filter → search all
-          </button>
+      {/* User section */}
+      {user && (
+        <div className="border-t border-zinc-800 px-4 py-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-xs font-semibold">
+                {(user.name || user.email || 'U').charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-zinc-300 truncate">{user.name || 'User'}</p>
+              <p className="text-xs text-zinc-600 truncate">{user.email}</p>
+            </div>
+            <button
+              onClick={logout}
+              title="Sign out"
+              className="w-6 h-6 flex items-center justify-center rounded text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       )}
-    </aside>
+    </div>
   )
 }

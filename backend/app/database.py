@@ -1,28 +1,45 @@
-import chromadb
-from app.config import settings
-import os
-
-_client = None
-_collection = None
+from app.supabase_client import get_supabase
 
 
-def init_db():
-    global _client, _collection
-    os.makedirs(settings.chroma_db_path, exist_ok=True)
-    _client = chromadb.PersistentClient(path=settings.chroma_db_path)
-    _collection = _client.get_or_create_collection(
-        name="medical_documents",
-        metadata={"hnsw:space": "cosine"},
+def add_chunks(chunks: list[dict]):
+    """Insert chunk records into Supabase document_chunks table."""
+    sb = get_supabase()
+    sb.table("document_chunks").insert(chunks).execute()
+
+
+def search_chunks(
+    query_embedding: list[float],
+    user_id: str,
+    document_ids: list[str] | None = None,
+    top_k: int = 5,
+) -> list[dict]:
+    sb = get_supabase()
+    result = sb.rpc(
+        "match_document_chunks",
+        {
+            "query_embedding": query_embedding,
+            "match_count": top_k,
+            "filter_user_id": user_id,
+            "filter_document_ids": document_ids or None,
+        },
+    ).execute()
+    return result.data or []
+
+
+def delete_chunks(document_id: str, user_id: str):
+    sb = get_supabase()
+    (
+        sb.table("document_chunks")
+        .delete()
+        .eq("document_id", document_id)
+        .eq("user_id", user_id)
+        .execute()
     )
 
 
-def get_collection():
-    if _collection is None:
-        init_db()
-    return _collection
-
-
-def get_client():
-    if _client is None:
-        init_db()
-    return _client
+def user_has_chunks(user_id: str) -> bool:
+    sb = get_supabase()
+    result = (
+        sb.table("document_chunks").select("id").eq("user_id", user_id).limit(1).execute()
+    )
+    return bool(result.data)

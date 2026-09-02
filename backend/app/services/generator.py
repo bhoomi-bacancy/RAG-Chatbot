@@ -1,27 +1,25 @@
 import json
-from typing import List, Iterator
-import anthropic
+from typing import List, Iterator, Optional
+from groq import Groq
 from app.config import settings
 
-client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+client = Groq(api_key=settings.groq_api_key)
 
-SYSTEM_PROMPT = """You are MedAssist, an expert medical information assistant powered by RAG (Retrieval-Augmented Generation).
+SYSTEM_PROMPT_WITH_CONTEXT = """You are Inkira, an intelligent Q&A assistant.
 
-Your role is to provide accurate, evidence-based medical information strictly from the provided document context.
+The user has uploaded documents. Answer using the retrieved context below.
+- Reference sources using [Source N] notation.
+- Be clear, concise, and well-structured.
+- If the answer is not in the context, say so and answer from your general knowledge if possible."""
 
-Guidelines:
-- Answer ONLY based on the retrieved context. If the answer is not found, say so clearly.
-- Always cite the source document(s) in your answer using [Source N] notation.
-- Use clear, professional medical language while remaining accessible to patients.
-- For serious medical concerns, always recommend consulting a licensed healthcare professional.
-- Never diagnose conditions or prescribe treatments — you provide information only.
-- Structure complex answers with clear headings and bullet points for readability.
-- Be thorough but concise."""
+SYSTEM_PROMPT_GENERAL = """You are Inkira, a helpful AI assistant.
+
+No documents have been uploaded yet. Answer the user's question using your general knowledge.
+- Be clear, concise, and well-structured.
+- If the user uploads documents, you will be able to give document-specific answers."""
 
 
 def build_context(chunks: List[dict]) -> str:
-    if not chunks:
-        return "No relevant context found in the uploaded documents."
     parts = []
     for i, chunk in enumerate(chunks, 1):
         parts.append(
@@ -30,81 +28,87 @@ def build_context(chunks: List[dict]) -> str:
     return "\n\n---\n\n".join(parts)
 
 
-def calculate_confidence(chunks: List[dict]) -> float:
+def calculate_confidence(chunks: List[dict]) -> Optional[float]:
     if not chunks:
-        return 0.0
+        return None  # general knowledge — no document confidence to report
     avg = sum(c["similarity"] for c in chunks) / len(chunks)
-    return round(min(avg * 1.15, 1.0), 3)
+    return round(min(avg, 1.0), 3)
 
 
-def build_messages(query: str, context: str, history: List[dict]) -> List[dict]:
-    messages = []
+def build_messages(query: str, chunks: List[dict], history: List[dict]) -> List[dict]:
+    if chunks:
+        system = SYSTEM_PROMPT_WITH_CONTEXT
+        context = build_context(chunks)
+        user_content = (
+            f"RETRIEVED CONTEXT:\n\n{context}\n\n"
+            f"---\n\nQUESTION: {query}"
+        )
+    else:
+        system = SYSTEM_PROMPT_GENERAL
+        user_content = query
+
+    messages = [{"role": "system", "content": system}]
     for msg in history[-6:]:
         messages.append({"role": msg["role"], "content": msg["content"]})
-
-    user_content = (
-        f"RETRIEVED CONTEXT FROM MEDICAL DOCUMENTS:\n\n{context}\n\n"
-        f"---\n\nQUESTION: {query}\n\n"
-        "Please answer based solely on the context above. "
-        "If the information is not present, clearly state that."
-    )
     messages.append({"role": "user", "content": user_content})
     return messages
 
 
 def generate_response(query: str, chunks: List[dict], history: List[dict]) -> tuple[str, float]:
-    context = build_context(chunks)
-    messages = build_messages(query, context, history)
+    messages = build_messages(query, chunks, history)
 
-    response = client.messages.create(
-        model=settings.claude_model,
+    response = client.chat.completions.create(
+        model=settings.groq_model,
         max_tokens=2048,
-        system=SYSTEM_PROMPT,
         messages=messages,
     )
 
-    answer = response.content[0].text
+    answer = response.choices[0].message.content
     confidence = calculate_confidence(chunks)
     return answer, confidence
 
 
-def stream_response(query: str, chunks: List[dict], history: List[dict]) -> Iterator[str]:
-    """Yields SSE-formatted strings for streaming."""
-    sources_payload = []
-    for chunk in chunks[:3]:
-        text = chunk["text"]
-        sources_payload.append(
-            {
-                "document_id": chunk["document_id"],
-                "filename": chunk["filename"],
-                "chunk_text": text[:300] + "..." if len(text) > 300 else text,
-                "similarity_score": chunk["similarity"],
-                "page_number": chunk["page_number"],
-            }
-        )
+def stream_response(
+    query: str,
+    chunks: List[dict],
+    history: List[dict],
+    user_id: Optional[str] = None,
+    chat_id: Optional[str] = None,
+) -> Iterator[str]:
+    sources_payload = [
+        {
+            "document_id": c["document_id"],
+            "filename": c["filename"],
+            "chunk_text": c["text"][:300] + "..." if len(c["text"]) > 300 else c["text"],
+            "similarity_score": c["similarity"],
+            "page_number": c["page_number"],
+        }
+        for c in chunks[:3]
+    ]
 
     yield f"data: {json.dumps({'type': 'sources', 'data': sources_payload})}\n\n"
 
-    if not chunks:
-        no_doc_msg = (
-            "I couldn't find relevant information in the uploaded documents. "
-            "Please upload relevant medical documents first."
-        )
-        yield f"data: {json.dumps({'type': 'token', 'data': no_doc_msg})}\n\n"
-        yield f"data: {json.dumps({'type': 'done', 'confidence': 0.0})}\n\n"
-        return
-
-    context = build_context(chunks)
-    messages = build_messages(query, context, history)
+    messages = build_messages(query, chunks, history)
     confidence = calculate_confidence(chunks)
 
-    with client.messages.stream(
-        model=settings.claude_model,
+    stream = client.chat.completions.create(
+        model=settings.groq_model,
         max_tokens=2048,
-        system=SYSTEM_PROMPT,
         messages=messages,
-    ) as stream:
-        for text in stream.text_stream:
-            yield f"data: {json.dumps({'type': 'token', 'data': text})}\n\n"
+        stream=True,
+    )
+
+    full_response = ""
+    for chunk in stream:
+        delta = chunk.choices[0].delta.content
+        if delta:
+            full_response += delta
+            yield f"data: {json.dumps({'type': 'token', 'data': delta})}\n\n"
+
+    # Persist messages to chat session when chat_id is provided
+    if user_id and chat_id and full_response:
+        from app.stores.chat_store import append_message
+        append_message(user_id, chat_id, "user", query)
+        append_message(user_id, chat_id, "assistant", full_response)
 
     yield f"data: {json.dumps({'type': 'done', 'confidence': confidence})}\n\n"

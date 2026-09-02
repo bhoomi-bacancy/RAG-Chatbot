@@ -1,5 +1,5 @@
 from typing import List, Optional
-from app.database import get_collection
+from app.database import search_chunks, user_has_chunks
 from app.services.embedder import embed_query
 from app.config import settings
 
@@ -7,46 +7,36 @@ from app.config import settings
 def retrieve_chunks(
     query: str,
     document_ids: Optional[List[str]] = None,
+    user_id: Optional[str] = None,
     top_k: int = None,
 ) -> List[dict]:
     top_k = top_k or settings.top_k
-    collection = get_collection()
 
-    total = collection.count()
-    if total == 0:
+    if user_id and not user_has_chunks(user_id):
         return []
 
     query_embedding = embed_query(query)
 
-    where_filter = None
-    if document_ids:
-        if len(document_ids) == 1:
-            where_filter = {"document_id": document_ids[0]}
-        else:
-            where_filter = {"document_id": {"$in": document_ids}}
-
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=min(top_k, total),
-        where=where_filter,
-        include=["documents", "metadatas", "distances"],
+    results = search_chunks(
+        query_embedding=query_embedding,
+        user_id=user_id,
+        document_ids=document_ids,
+        top_k=top_k,
     )
 
-    chunks: List[dict] = []
-    if results["documents"] and results["documents"][0]:
-        for doc, meta, dist in zip(
-            results["documents"][0],
-            results["metadatas"][0],
-            results["distances"][0],
-        ):
-            chunks.append(
-                {
-                    "text": doc,
-                    "document_id": meta.get("document_id", ""),
-                    "filename": meta.get("filename", "Unknown"),
-                    "page_number": meta.get("page_number", 1),
-                    "similarity": round(max(0.0, 1 - dist), 4),
-                }
-            )
+    chunks = []
+    for row in results:
+        similarity = row.get("similarity", 0.0)
+        if similarity < 0.3:
+            continue
+        chunks.append(
+            {
+                "text": row["content"],
+                "document_id": row["document_id"],
+                "filename": row["filename"],
+                "page_number": row["page_number"],
+                "similarity": round(float(similarity), 4),
+            }
+        )
 
     return chunks

@@ -3,13 +3,17 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    anthropic_api_key: str = ""
-    claude_model: str = "claude-sonnet-4-6"
-    embedding_model: str = "all-MiniLM-L6-v2"
-    chroma_db_path: str = "./data/chroma_db"
-    chunk_size: int = 512
-    chunk_overlap: int = 64
+    groq_api_key: str = ""
+    groq_model: str = "groq/compound-mini"
+    openai_api_key: str = ""
     top_k: int = 5
+    jwt_secret: str = "inkira-secret-key-change-in-prod"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_days: int = 7
+    free_daily_limit: int = 30
+    supabase_url: str = ""
+    supabase_service_key: str = ""
+    allowed_origins: str = "http://localhost:5173,http://localhost:3000"
 
     class Config:
         env_file = ".env"
