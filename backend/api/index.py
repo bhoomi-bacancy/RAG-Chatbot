@@ -1,4 +1,7 @@
-from main import app  # noqa — Vercel ASGI entry point
-from mangum import Mangum
+import sys
+import os
 
-handler = Mangum(app, lifespan="off")
+# Ensure backend root is on the path so `main` and `app` modules resolve
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from main import app  # noqa — Vercel detects FastAPI ASGI app automatically
