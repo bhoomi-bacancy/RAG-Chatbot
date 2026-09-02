@@ -1,20 +1,16 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import settings
-
 app = FastAPI(title="Inkira RAG API", version="2.0.0")
-
-origins = [o.strip() for o in settings.allowed_origins.split(",") if o.strip()]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "config_loaded": True}
+    # Test if env vars are available
+    return {
+        "status": "healthy",
+        "groq_key_set": bool(os.getenv("GROQ_API_KEY")),
+        "supabase_url_set": bool(os.getenv("SUPABASE_URL")),
+    }
