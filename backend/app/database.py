@@ -8,16 +8,16 @@ def add_chunks(chunks: list[dict]):
 
 
 def search_chunks(
-    query_embedding: list[float],
+    query: str,
     user_id: str,
     document_ids: list[str] | None = None,
     top_k: int = 5,
 ) -> list[dict]:
     sb = get_supabase()
     result = sb.rpc(
-        "match_document_chunks",
+        "search_document_chunks",
         {
-            "query_embedding": query_embedding,
+            "query_text": query,
             "match_count": top_k,
             "filter_user_id": user_id,
             "filter_document_ids": document_ids or None,

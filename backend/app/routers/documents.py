@@ -8,7 +8,6 @@ from app.database import add_chunks, delete_chunks
 from app.models import DocumentMetadata, UploadResponse
 from app.services.auth_service import get_current_user
 from app.services.document_processor import process_document
-from app.services.embedder import embed_texts
 from app.stores.chat_store import add_doc
 from app.supabase_client import get_supabase
 
@@ -46,11 +45,6 @@ async def upload_document(
     document_id = str(uuid.uuid4())
     user_id = current_user["id"]
 
-    # Generate embeddings for all chunk texts
-    texts = [c["text"] for c in chunks]
-    embeddings = embed_texts(texts)
-
-    # Store chunks + embeddings in Supabase
     chunk_records = [
         {
             "id": f"{document_id}_{i}",
@@ -59,13 +53,11 @@ async def upload_document(
             "filename": file.filename,
             "page_number": c["page_number"],
             "content": c["text"],
-            "embedding": emb,
         }
-        for i, (c, emb) in enumerate(zip(chunks, embeddings))
+        for i, c in enumerate(chunks)
     ]
     add_chunks(chunk_records)
 
-    # Save document metadata
     sb = get_supabase()
     sb.table("documents").insert(
         {
@@ -114,10 +106,7 @@ async def list_documents(current_user: dict = Depends(get_current_user)):
 @router.delete("/{document_id}")
 async def delete_document(document_id: str, current_user: dict = Depends(get_current_user)):
     user_id = current_user["id"]
-
     delete_chunks(document_id, user_id)
-
     sb = get_supabase()
     sb.table("documents").delete().eq("id", document_id).eq("user_id", user_id).execute()
-
     return {"message": "Deleted document and all its chunks."}

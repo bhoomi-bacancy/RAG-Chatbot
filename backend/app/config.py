@@ -5,7 +5,6 @@ from functools import lru_cache
 class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "groq/compound-mini"
-    openai_api_key: str = ""
     top_k: int = 5
     jwt_secret: str = "inkira-secret-key-change-in-prod"
     jwt_algorithm: str = "HS256"
