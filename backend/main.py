@@ -1,18 +1,40 @@
+import os
+from pathlib import Path
+
+# Load .env only in local development (file won't exist on Vercel)
+_env_file = Path(__file__).parent / ".env"
+if _env_file.exists():
+    from dotenv import load_dotenv
+    load_dotenv(_env_file)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic_settings import BaseSettings
 
-class Settings(BaseSettings):
-    groq_api_key: str = ""
-    supabase_url: str = ""
-    allowed_origins: str = "http://localhost:5173"
+from app.config import settings
+from app.routers import documents, chat, auth, chats
 
-settings = Settings()
+app = FastAPI(
+    title="Inkira RAG API",
+    description="Document Q&A chatbot — upload any document, ask anything.",
+    version="2.0.0",
+)
 
-app = FastAPI(title="Inkira RAG API", version="2.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+origins = [o.strip() for o in settings.allowed_origins.split(",") if o.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
+app.include_router(chats.router, prefix="/api/chats", tags=["Chats"])
+app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
+app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 
 
-@app.get("/health")
+@app.get("/health", tags=["Health"])
 async def health():
-    return {"status": "healthy", "groq_key_set": bool(settings.groq_api_key)}
+    return {"status": "healthy", "service": "Inkira RAG API"}
