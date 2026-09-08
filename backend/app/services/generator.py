@@ -300,6 +300,13 @@ async def stream_response(
     print(f"[stream] Starting {provider}/{model}")
 
     # 3. Stream tokens
+    # Validate Groq key before trying (empty key → APIConnectionError, not auth error)
+    if provider == "groq" and not settings.groq_api_key:
+        print("[stream] GROQ_API_KEY is not set in environment")
+        yield f"data: {json.dumps({'type': 'token', 'data': '⚠️ Groq API key is not configured on this server. Please set GROQ_API_KEY in Vercel environment variables.'})}\n\n"
+        yield f"data: {json.dumps({'type': 'done', 'confidence': None})}\n\n"
+        return
+
     full_response = ""
     try:
         if provider == "groq":
@@ -320,10 +327,13 @@ async def stream_response(
         print(f"[stream] Done — {len(full_response)} chars from {provider}/{model}")
 
     except Exception as e:
-        print(f"[stream] Provider error ({provider}/{model}): {e}")
+        print(f"[stream] Provider error ({provider}/{model}): {type(e).__name__}: {e}")
         err_str = str(e).lower()
+        err_type = type(e).__name__.lower()
         if "401" in err_str or "invalid" in err_str or "api key" in err_str or "unauthorized" in err_str or "authentication" in err_str:
             err_msg = f"⚠️ Your {provider.title()} API key is invalid or expired. Please reconnect in the model picker."
+        elif "connection" in err_type or "apiconnection" in err_type or "connection error" in err_str:
+            err_msg = f"⚠️ Could not connect to {provider.title()}. Check that GROQ_API_KEY is set in your Vercel environment variables."
         elif "429" in err_str or "rate limit" in err_str or "quota" in err_str:
             err_msg = f"⚠️ {provider.title()} rate limit reached. Please try again in a moment."
         elif "timeout" in err_str or "timed out" in err_str or "deadline" in err_str:
@@ -331,7 +341,7 @@ async def stream_response(
         elif "not found" in err_str or "404" in err_str or "does not exist" in err_str:
             err_msg = f"⚠️ Model not found. Please select a different {provider.title()} model."
         else:
-            err_msg = f"⚠️ {provider.title()} returned an error: {str(e)[:120]}"
+            err_msg = f"⚠️ {provider.title()} error ({type(e).__name__}): {str(e)[:120]}"
         yield f"data: {json.dumps({'type': 'token', 'data': err_msg})}\n\n"
 
     # 4. Persist messages (wrapped — failure must not prevent 'done' from being sent)

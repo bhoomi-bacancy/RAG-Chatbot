@@ -39,3 +39,20 @@ app.include_router(providers.router, prefix="/api/providers", tags=["Providers"]
 @app.get("/health", tags=["Health"])
 async def health():
     return {"status": "healthy", "service": "Inkira RAG API"}
+
+
+@app.get("/health/env", tags=["Health"])
+async def health_env():
+    """Shows which required environment variables are set (not their values)."""
+    from app.config import settings
+    return {
+        "GROQ_API_KEY":          bool(settings.groq_api_key),
+        "SUPABASE_URL":          bool(settings.supabase_url),
+        "SUPABASE_SERVICE_KEY":  bool(settings.supabase_service_key),
+        "JWT_SECRET_custom":     settings.jwt_secret != "inkira-secret-key-change-in-prod",
+        "ALLOWED_ORIGINS":       settings.allowed_origins,
+        "FRONTEND_URL":          settings.frontend_url,
+        "OPENAI_API_KEY":        bool(settings.openai_api_key),
+        "ANTHROPIC_API_KEY":     bool(settings.anthropic_api_key),
+        "GOOGLE_API_KEY":        bool(settings.google_api_key),
+    }
