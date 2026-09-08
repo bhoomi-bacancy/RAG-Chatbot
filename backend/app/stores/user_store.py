@@ -1,3 +1,4 @@
+from datetime import date, datetime, timezone
 from app.supabase_client import get_supabase
 from app.config import settings
 
@@ -30,7 +31,6 @@ def get_by_id(uid: str):
 
 
 def increment_usage(uid: str):
-    from datetime import date
     sb = get_supabase()
     user = get_by_id(uid)
     if not user:
@@ -43,8 +43,36 @@ def increment_usage(uid: str):
 
 
 def get_usage(uid: str) -> int:
-    from datetime import date
     user = get_by_id(uid)
     if not user or user.get("usage_date") != str(date.today()):
         return 0
     return user.get("daily_usage", 0)
+
+
+# ── Password reset ────────────────────────────────────────────────────────────
+
+def save_reset_token(user_id: str, token: str, expiry: datetime) -> None:
+    sb = get_supabase()
+    sb.table("users").update({
+        "reset_token": token,
+        "reset_token_expiry": expiry.isoformat(),
+    }).eq("id", user_id).execute()
+
+
+def get_by_reset_token(token: str):
+    sb = get_supabase()
+    result = sb.table("users").select("*").eq("reset_token", token).limit(1).execute()
+    return result.data[0] if result.data else None
+
+
+def update_password(user_id: str, new_password_hash: str) -> None:
+    sb = get_supabase()
+    sb.table("users").update({"password_hash": new_password_hash}).eq("id", user_id).execute()
+
+
+def clear_reset_token(user_id: str) -> None:
+    sb = get_supabase()
+    sb.table("users").update({
+        "reset_token": None,
+        "reset_token_expiry": None,
+    }).eq("id", user_id).execute()

@@ -1,3 +1,4 @@
+import json
 import traceback
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -19,13 +20,19 @@ async def chat(request: ChatRequest, current_user: dict = Depends(get_current_us
     uid = current_user["id"]
 
     try:
+        document_ids = request.document_ids
+        if not document_ids and request.chat_id:
+            chat_data = get_chat(uid, request.chat_id)
+            if chat_data and chat_data.get("document_ids"):
+                document_ids = chat_data["document_ids"]
+
         chunks = retrieve_chunks(
             query=request.message,
-            document_ids=request.document_ids,
+            document_ids=document_ids,
             user_id=uid,
         )
         history = [{"role": m.role, "content": m.content} for m in request.conversation_history]
-        answer, confidence = generate_response(request.message, chunks, history)
+        answer, confidence = generate_response(request.message, chunks, history, model=request.model, user_id=uid)
 
         sources = [
             Source(
@@ -55,29 +62,51 @@ async def chat_stream(request: ChatRequest, current_user: dict = Depends(get_cur
     uid = current_user["id"]
 
     try:
+        document_ids = request.document_ids
+        chat_data = None
+        if request.chat_id:
+            chat_data = get_chat(uid, request.chat_id)
+            if not document_ids and chat_data and chat_data.get("document_ids"):
+                document_ids = chat_data["document_ids"]
+
         chunks = retrieve_chunks(
             query=request.message,
-            document_ids=request.document_ids,
+            document_ids=document_ids,
             user_id=uid,
         )
         history = [{"role": m.role, "content": m.content} for m in request.conversation_history]
 
         # Auto-update chat title on first message
-        if request.chat_id:
-            chat = get_chat(uid, request.chat_id)
-            if chat and chat.get("title") == "New Chat" and not chat.get("messages"):
+        if request.chat_id and chat_data:
+            if chat_data.get("title") == "New Chat" and not chat_data.get("messages"):
                 new_title = request.message[:60].strip()
                 if new_title:
                     update_title(uid, request.chat_id, new_title)
 
+        async def event_generator():
+            sent_done = False
+            try:
+                async for chunk in stream_response(
+                    request.message,
+                    chunks,
+                    history,
+                    user_id=uid,
+                    chat_id=request.chat_id,
+                    model=request.model,
+                    user_api_key=request.user_api_key,
+                ):
+                    if '"type": "done"' in chunk:
+                        sent_done = True
+                    yield chunk
+            except Exception as gen_err:
+                traceback.print_exc()
+                err_msg = f"⚠️ Server error: {str(gen_err)[:100]}"
+                yield f"data: {json.dumps({'type': 'token', 'data': err_msg})}\n\n"
+            if not sent_done:
+                yield f"data: {json.dumps({'type': 'done', 'confidence': None})}\n\n"
+
         return StreamingResponse(
-            stream_response(
-                request.message,
-                chunks,
-                history,
-                user_id=uid,
-                chat_id=request.chat_id,
-            ),
+            event_generator(),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",

@@ -38,8 +38,44 @@ def delete_chunks(document_id: str, user_id: str):
 
 
 def user_has_chunks(user_id: str) -> bool:
-    sb = get_supabase()
-    result = (
-        sb.table("document_chunks").select("id").eq("user_id", user_id).limit(1).execute()
-    )
-    return bool(result.data)
+    try:
+        sb = get_supabase()
+        result = (
+            sb.table("document_chunks").select("id").eq("user_id", user_id).limit(1).execute()
+        )
+        return bool(result.data)
+    except Exception:
+        return False
+
+
+def search_chunks_safe(
+    query: str,
+    user_id: str,
+    document_ids: list[str] | None = None,
+    top_k: int = 5,
+) -> list[dict]:
+    try:
+        return search_chunks(query, user_id, document_ids, top_k)
+    except Exception:
+        return []
+
+
+def get_fallback_chunks(
+    user_id: str,
+    document_ids: list[str] | None = None,
+    top_k: int = 5,
+) -> list[dict]:
+    """Return chunks directly from the DB when FTS finds no keyword matches."""
+    try:
+        sb = get_supabase()
+        q = (
+            sb.table("document_chunks")
+            .select("id, document_id, user_id, filename, page_number, content")
+            .eq("user_id", user_id)
+        )
+        if document_ids:
+            q = q.in_("document_id", document_ids)
+        result = q.order("page_number").limit(top_k).execute()
+        return [{"rank": 0.0, **row} for row in (result.data or [])]
+    except Exception:
+        return []

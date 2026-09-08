@@ -41,6 +41,12 @@ export const logout = () => {
   localStorage.removeItem('inkira_user')
 }
 
+export const forgotPassword = (email) =>
+  api.post('/auth/forgot-password', { email })
+
+export const resetPassword = (token, newPassword) =>
+  api.post('/auth/reset-password', { token, new_password: newPassword })
+
 // ── Chats ─────────────────────────────────────────────────────────────────────
 
 export const listChats = () => api.get('/chats/')
@@ -69,10 +75,29 @@ export const listDocuments = () => api.get('/documents/')
 
 export const deleteDocument = id => api.delete(`/documents/${id}`)
 
+// ── Providers ─────────────────────────────────────────────────────────────────
+
+export const getConfiguredProviders = () => api.get('/providers/configured')
+
+export const getProviders = () => api.get('/providers/')
+
+export const connectProvider = (provider) =>
+  api.post('/providers/connect', { provider })
+
+export const disconnectProvider = (provider) =>
+  api.delete(`/providers/${provider}`)
+
+// User-stored provider API keys (persisted in backend DB)
+export const getMyProviderKeys  = () => api.get('/providers/my-keys')
+export const saveProviderKey    = (provider, apiKey) =>
+  api.post('/providers/key', { provider, api_key: apiKey })
+export const deleteProviderKey  = (provider) =>
+  api.delete(`/providers/key/${provider}`)
+
 // ── Streaming chat ─────────────────────────────────────────────────────────────
 
 export async function streamChat(
-  { message, conversationHistory, documentIds, chatId },
+  { message, conversationHistory, documentIds, chatId, model, userApiKey },
   callbacks
 ) {
   const { onSources, onToken, onDone, onError } = callbacks
@@ -92,6 +117,8 @@ export async function streamChat(
         conversation_history: conversationHistory,
         document_ids: documentIds?.length ? documentIds : null,
         chat_id: chatId || null,
+        model: model || null,
+        user_api_key: userApiKey || null,
       }),
     })
   } catch (networkErr) {
@@ -113,25 +140,44 @@ export async function streamChat(
   const reader = response.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
+  let receivedDone = false
+  const TIMEOUT_MS = 55000 // 55s — just under Vercel's 60s function limit
 
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
+  const timeoutId = setTimeout(() => {
+    reader.cancel()
+    onError?.('Request timed out. Please try again.')
+  }, TIMEOUT_MS)
 
-    buffer += decoder.decode(value, { stream: true })
-    const parts = buffer.split('\n\n')
-    buffer = parts.pop()
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
 
-    for (const part of parts) {
-      if (!part.startsWith('data: ')) continue
-      try {
-        const payload = JSON.parse(part.slice(6))
-        if (payload.type === 'sources') onSources?.(payload.data)
-        else if (payload.type === 'token') onToken?.(payload.data)
-        else if (payload.type === 'done') onDone?.(payload.confidence)
-      } catch {
-        // skip malformed SSE events
+      buffer += decoder.decode(value, { stream: true })
+      const parts = buffer.split('\n\n')
+      buffer = parts.pop()
+
+      for (const part of parts) {
+        if (!part.startsWith('data: ')) continue
+        try {
+          const payload = JSON.parse(part.slice(6))
+          if (payload.type === 'sources') onSources?.(payload.data)
+          else if (payload.type === 'token') onToken?.(payload.data)
+          else if (payload.type === 'done') {
+            receivedDone = true
+            onDone?.(payload.confidence)
+          }
+        } catch {
+          // skip malformed SSE events
+        }
       }
+    }
+  } finally {
+    clearTimeout(timeoutId)
+    // If the stream closed without a 'done' event (backend crash/timeout),
+    // unblock the UI so the user is not stuck on "Generating..."
+    if (!receivedDone) {
+      onDone?.(null)
     }
   }
 }

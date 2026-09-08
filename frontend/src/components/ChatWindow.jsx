@@ -1,11 +1,21 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { ArrowUp, Paperclip, X, Loader2, Sparkles, MessageSquare, FileText } from 'lucide-react'
-import { streamChat, getChat, createChat, uploadDocument } from '../api/client'
+import { ArrowUp, Paperclip, X, Loader2, Sparkles, MessageSquare, FileText, ChevronDown } from 'lucide-react'
+import { streamChat, getChat, createChat, uploadDocument, renameChat, getConfiguredProviders, getMyProviderKeys, deleteProviderKey } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import MessageBubble from './MessageBubble'
+import ModelPickerModal, { MODELS, PROVIDERS } from './ModelPickerModal'
+import ConnectProviderModal from './ConnectProviderModal'
 
 let msgId = 0
 const nextId = () => ++msgId
+
+function getProviderForModel(modelId) {
+  if (!modelId) return 'groq'
+  if (modelId.startsWith('gpt-')) return 'openai'
+  if (modelId.startsWith('claude-')) return 'anthropic'
+  if (modelId.startsWith('gemini-')) return 'google'
+  return 'groq'
+}
 
 const SUGGESTIONS = [
   'Summarize the uploaded document',
@@ -52,18 +62,54 @@ function AttachmentChip({ name, size, onRemove }) {
   )
 }
 
-export default function ChatWindow({ chatId, onChatCreated, chats, setChats }) {
+export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onOpenDocuments, freshlyConnectedProvider }) {
   const { user, updateUser } = useAuth()
   const [messages, setMessages]           = useState([])
   const [input, setInput]                 = useState('')
   const [streaming, setStreaming]         = useState(false)
   const [attachedFiles, setAttachedFiles] = useState([])
   const [loadingChat, setLoadingChat]     = useState(false)
+  const [selectedModel, setSelectedModel] = useState('compound-beta-mini')
+  const [showModelPicker, setShowModelPicker] = useState(false)
+  const [connectedProviders, setConnectedProviders] = useState([])
+  const [connectedProviderKeys, setConnectedProviderKeys] = useState({})
+  const [connectingProvider, setConnectingProvider] = useState(null)
+  const [pendingModel, setPendingModel] = useState(null)  // model user tried to select before connecting
+  const [platformProviders, setPlatformProviders] = useState(['groq'])
 
-  const scrollRef     = useRef(null)
-  const textareaRef   = useRef(null)
-  const fileInputRef  = useRef(null)
-  const skipReloadRef = useRef(false)
+  const scrollRef      = useRef(null)
+  const textareaRef    = useRef(null)
+  const fileInputRef   = useRef(null)
+  const skipReloadRef  = useRef(false)
+  const lastUserMsgRef = useRef(null)   // ref to last user message element
+  const prevLengthRef  = useRef(0)      // tracks message count for detecting new pairs
+  const chatsRef       = useRef(chats)  // always-current chats list for use inside callbacks
+
+  // Keep chatsRef current so callbacks always see the latest titles
+  useEffect(() => { chatsRef.current = chats }, [chats])
+
+  // If Google OAuth just completed, refresh keys from backend
+  useEffect(() => {
+    if (freshlyConnectedProvider) {
+      getMyProviderKeys()
+        .then(({ data }) => setConnectedProviders(data.connected || []))
+        .catch(() => {})
+    }
+  }, [freshlyConnectedProvider])
+
+  // On mount: load which providers are platform-configured AND which the user has connected
+  useEffect(() => {
+    getConfiguredProviders()
+      .then(({ data }) => setPlatformProviders(data.configured || ['groq']))
+      .catch(() => setPlatformProviders(['groq']))
+
+    getMyProviderKeys()
+      .then(({ data }) => {
+        setConnectedProviders(data.connected || [])
+        if (data.keys) setConnectedProviderKeys(data.keys)
+      })
+      .catch(() => {})
+  }, [])
 
   /* ── Load chat history ──────────────────────────────────────────────────── */
   useEffect(() => {
@@ -88,7 +134,23 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats }) {
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
-    requestAnimationFrame(() => { el.scrollTop = el.scrollHeight })
+
+    const lastMsg = messages[messages.length - 1]
+    const newPair = messages.length > prevLengthRef.current
+
+    if (!newPair) return  // no scroll during streaming — user reads from the start
+
+    prevLengthRef.current = messages.length
+    if (lastMsg?.streaming) {
+      // New response starting: scroll the user's message to the top so they
+      // read the AI reply from the very beginning, not the end.
+      requestAnimationFrame(() => {
+        lastUserMsgRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
+    } else {
+      // History loaded on chat switch: show the most recent messages.
+      requestAnimationFrame(() => { el.scrollTop = el.scrollHeight })
+    }
   }, [messages])
 
   const conversationHistory = messages
@@ -139,9 +201,12 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats }) {
     setStreaming(true)
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
 
+    const currentProvider = getProviderForModel(selectedModel)
+    const userApiKey = connectedProviderKeys[currentProvider] || null
+
     try {
       await streamChat(
-        { message: text.trim(), conversationHistory, documentIds, chatId: activeChatId },
+        { message: text.trim(), conversationHistory, documentIds, chatId: activeChatId, model: selectedModel, userApiKey },
         {
           onSources: sources =>
             setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, sources } : m)),
@@ -155,11 +220,15 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats }) {
             ))
             setStreaming(false)
             updateUser({ daily_usage: (user?.daily_usage || 0) + 1 })
-            setChats(prev => prev.map(c =>
-              c.id === activeChatId && c.title === 'New Chat'
-                ? { ...c, title: text.trim().slice(0, 60) }
-                : c
-            ))
+            // Auto-title the chat from the first message and persist it
+            const currentTitle = chatsRef.current.find(c => c.id === activeChatId)?.title
+            if (currentTitle === 'New Chat') {
+              const newTitle = text.trim().slice(0, 60)
+              setChats(prev => prev.map(c =>
+                c.id === activeChatId ? { ...c, title: newTitle } : c
+              ))
+              renameChat(activeChatId, newTitle).catch(() => {})
+            }
           },
           onError: err => {
             setMessages(prev => prev.map(m =>
@@ -177,19 +246,58 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats }) {
       ))
       setStreaming(false)
     }
-  }, [chatId, streaming, attachedFiles, conversationHistory, user, setChats, onChatCreated, updateUser])
+  }, [chatId, streaming, attachedFiles, conversationHistory, user, setChats, onChatCreated, updateUser, selectedModel, connectedProviderKeys])
 
   const handleKeyDown         = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }
   const handleTextareaChange  = e => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px' }
   const handleFileChange      = e => {
     const files = Array.from(e.target.files || [])
     if (!files.length) return
-    setAttachedFiles(prev => [...prev, ...files.slice(0, 3 - prev.length).map(f => ({ file: f, name: f.name }))].slice(0, 3))
+    const MAX_SIZE = 4 * 1024 * 1024
+    const valid = files.filter(f => {
+      if (f.size > MAX_SIZE) {
+        alert(`"${f.name}" is too large. Maximum file size is 4 MB.`)
+        return false
+      }
+      return true
+    })
+    setAttachedFiles(prev => [...prev, ...valid.slice(0, 3 - prev.length).map(f => ({ file: f, name: f.name }))].slice(0, 3))
     e.target.value = ''
   }
   const removeFile = name => setAttachedFiles(prev => prev.filter(f => f.name !== name))
 
-  const barProps = { input, streaming, attachedFiles, removeFile, fileInputRef, handleFileChange, handleTextareaChange, handleKeyDown, sendMessage, textareaRef }
+  const handleOpenModelPicker = () => setShowModelPicker(true)
+
+  // Called when user clicks a locked model — remember which model they wanted
+  const handleConnectProvider = (provider, modelId) => {
+    setShowModelPicker(false)
+    setConnectingProvider(provider)
+    if (modelId) setPendingModel(modelId)
+  }
+
+  // Called after provider is successfully connected (key saved in ConnectProviderModal)
+  const handleProviderConnected = (providerId, apiKey) => {
+    setConnectedProviders(prev => [...new Set([...prev, providerId])])
+    // Cache the actual key so it can be passed with chat requests immediately
+    if (apiKey && apiKey !== 'platform') {
+      setConnectedProviderKeys(prev => ({ ...prev, [providerId]: apiKey }))
+    }
+    if (pendingModel) {
+      setSelectedModel(pendingModel)
+      setPendingModel(null)
+    }
+  }
+  const handleProviderDisconnected = (providerId) => {
+    deleteProviderKey(providerId).catch(() => {})
+    setConnectedProviders(prev => prev.filter(p => p !== providerId))
+    // If current model belongs to disconnected provider, reset to default
+    const providerMeta = PROVIDERS.find(p => p.id === providerId)
+    if (providerMeta?.models.some(m => m.id === selectedModel)) {
+      setSelectedModel('compound-beta-mini')
+    }
+  }
+
+  const barProps = { input, streaming, attachedFiles, removeFile, fileInputRef, handleFileChange, handleTextareaChange, handleKeyDown, sendMessage, textareaRef, selectedModel, onOpenModelPicker: handleOpenModelPicker }
 
   /* ── Welcome screen ─────────────────────────────────────────────────────── */
   if (!chatId && messages.length === 0) {
@@ -218,6 +326,25 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats }) {
           </div>
         </div>
         <InputBar {...barProps} />
+        {showModelPicker && (
+          <ModelPickerModal
+            selectedModel={selectedModel}
+            onSelect={setSelectedModel}
+            onClose={() => setShowModelPicker(false)}
+            connectedProviders={connectedProviders}
+            platformConfiguredProviders={platformProviders}
+            onConnectProvider={handleConnectProvider}
+            onDisconnect={handleProviderDisconnected}
+          />
+        )}
+        {connectingProvider && (
+          <ConnectProviderModal
+            provider={connectingProvider}
+            onClose={() => setConnectingProvider(null)}
+            onConnected={handleProviderConnected}
+            platformConfigured={platformProviders}
+          />
+        )}
       </div>
     )
   }
@@ -236,17 +363,43 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats }) {
           </div>
         ) : (
           <div className="max-w-3xl mx-auto w-full py-6">
-            {messages.map(msg => <MessageBubble key={msg.id} message={msg} />)}
+            {messages.map((msg, i) => {
+              const isLastUser = msg.role === 'user' && i === messages.length - 2
+              return (
+                <div key={msg.id} ref={isLastUser ? lastUserMsgRef : null}>
+                  <MessageBubble message={msg} onOpenDocuments={onOpenDocuments} />
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
       <InputBar {...barProps} />
+      {showModelPicker && (
+        <ModelPickerModal
+          selectedModel={selectedModel}
+          onSelect={setSelectedModel}
+          onClose={() => setShowModelPicker(false)}
+          connectedProviders={connectedProviders}
+          onConnectProvider={handleConnectProvider}
+          onDisconnect={handleProviderDisconnected}
+        />
+      )}
+      {connectingProvider && (
+        <ConnectProviderModal
+          provider={connectingProvider}
+          onClose={() => setConnectingProvider(null)}
+          onConnected={handleProviderConnected}
+        />
+      )}
     </div>
   )
 }
 
 /* ── InputBar ─────────────────────────────────────────────────────────────── */
-function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, handleFileChange, handleTextareaChange, handleKeyDown, sendMessage, textareaRef }) {
+function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, handleFileChange, handleTextareaChange, handleKeyDown, sendMessage, textareaRef, selectedModel, onOpenModelPicker }) {
+  const modelLabel = MODELS.find(m => m.id === selectedModel)?.name ?? selectedModel
+
   return (
     <div className="shrink-0 px-4 pb-5 pt-3 bg-white border-t border-zinc-100">
       <div className="max-w-3xl mx-auto">
@@ -280,11 +433,23 @@ function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, h
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={streaming || attachedFiles.length >= 3}
-                title="Attach PDF, DOCX, or TXT (max 3)"
+                title="Attach PDF, DOCX, or TXT — max 3 files, 4 MB each"
                 className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Paperclip className="w-4 h-4" />
               </button>
+
+              <button
+                type="button"
+                onClick={onOpenModelPicker}
+                disabled={streaming}
+                title="Select AI model"
+                className="flex items-center gap-1 h-7 px-2 rounded-lg text-xs text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 transition disabled:opacity-30 disabled:cursor-not-allowed font-medium"
+              >
+                <span className="truncate max-w-[120px]">{modelLabel}</span>
+                <ChevronDown className="w-3 h-3 shrink-0" />
+              </button>
+
               {streaming && <span className="text-xs text-zinc-400">Generating…</span>}
             </div>
 

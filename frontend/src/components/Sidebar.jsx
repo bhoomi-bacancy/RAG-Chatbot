@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bot, Plus, Trash2, MessageSquare, LogOut, Pencil, Check, X } from 'lucide-react'
+import { Bot, Plus, Trash2, MessageSquare, LogOut, Pencil, Check, X, FolderOpen } from 'lucide-react'
 import { listChats, createChat, deleteChat, renameChat } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -15,16 +15,16 @@ function timeAgo(dateStr) {
 
 function groupChats(chats) {
   const now = new Date()
-  const startOfToday    = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfToday     = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const startOfYesterday = new Date(startOfToday.getTime() - 86400000)
   const startOf7DaysAgo  = new Date(startOfToday.getTime() - 6 * 86400000)
   const groups = { Today: [], Yesterday: [], 'Previous 7 days': [], Older: [] }
   for (const chat of chats) {
     const d = new Date(chat.updated_at || chat.created_at)
-    if (d >= startOfToday)      groups.Today.push(chat)
-    else if (d >= startOfYesterday) groups.Yesterday.push(chat)
-    else if (d >= startOf7DaysAgo)  groups['Previous 7 days'].push(chat)
-    else groups.Older.push(chat)
+    if (d >= startOfToday)           groups.Today.push(chat)
+    else if (d >= startOfYesterday)  groups.Yesterday.push(chat)
+    else if (d >= startOf7DaysAgo)   groups['Previous 7 days'].push(chat)
+    else                             groups.Older.push(chat)
   }
   return groups
 }
@@ -37,7 +37,6 @@ function ChatRow({ chat, isActive, onSelect, onDelete, onRename, deletingId }) {
   const [saving,   setSaving]   = useState(false)
   const inputRef = useRef(null)
 
-  // Focus input when entering edit mode
   useEffect(() => {
     if (editing) inputRef.current?.select()
   }, [editing])
@@ -82,7 +81,6 @@ function ChatRow({ chat, isActive, onSelect, onDelete, onRename, deletingId }) {
       }`}
     >
       {editing ? (
-        /* ── Edit mode ── */
         <div className="flex items-center gap-1.5 flex-1 min-w-0" onClick={e => e.stopPropagation()}>
           <input
             ref={inputRef}
@@ -108,14 +106,11 @@ function ChatRow({ chat, isActive, onSelect, onDelete, onRename, deletingId }) {
           </button>
         </div>
       ) : (
-        /* ── Normal mode ── */
         <>
           <div className="flex-1 min-w-0 mr-1.5">
             <p className="text-sm font-medium truncate">{chat.title}</p>
             <p className="text-xs text-zinc-600 mt-0.5">{timeAgo(chat.updated_at || chat.created_at)}</p>
           </div>
-
-          {/* Action buttons — shown on hover or when active */}
           {(hovered || isActive) && (
             <div className="flex items-center gap-0.5 shrink-0" onClick={e => e.stopPropagation()}>
               <button
@@ -142,7 +137,10 @@ function ChatRow({ chat, isActive, onSelect, onDelete, onRename, deletingId }) {
 }
 
 /* ── Sidebar ──────────────────────────────────────────────────────────────── */
-export default function Sidebar({ currentChatId, chats, setChats, onSelectChat, onNewChat }) {
+export default function Sidebar({
+  currentChatId, chats, setChats, onSelectChat, onNewChat,
+  currentView, onSetView,
+}) {
   const { user, logout } = useAuth()
   const [deletingId,   setDeletingId]   = useState(null)
   const [creatingChat, setCreatingChat] = useState(false)
@@ -165,6 +163,7 @@ export default function Sidebar({ currentChatId, chats, setChats, onSelectChat, 
       const { data } = await createChat('New Chat')
       setChats(prev => [data, ...prev])
       onNewChat(data.id)
+      onSetView?.('chat')
     } catch { } finally { setCreatingChat(false) }
   }
 
@@ -196,48 +195,87 @@ export default function Sidebar({ currentChatId, chats, setChats, onSelectChat, 
           </div>
           <span className="text-white font-semibold text-sm tracking-tight">Inkira</span>
         </div>
+        {currentView === 'chat' && (
+          <button
+            onClick={handleNewChat}
+            disabled={creatingChat}
+            title="New chat"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition disabled:opacity-50"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Nav tabs */}
+      <div className="flex flex-col gap-1 px-2 py-2 border-b border-zinc-800">
         <button
-          onClick={handleNewChat}
-          disabled={creatingChat}
-          title="New chat"
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition disabled:opacity-50"
+          onClick={() => onSetView?.('chat')}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition w-full text-left ${
+            currentView === 'chat'
+              ? 'bg-zinc-800 text-white'
+              : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+          }`}
         >
-          <Plus className="w-4 h-4" />
+          <MessageSquare className="w-4 h-4" />
+          Chats
+        </button>
+        <button
+          onClick={() => onSetView?.('documents')}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition w-full text-left ${
+            currentView === 'documents'
+              ? 'bg-zinc-800 text-white'
+              : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+          }`}
+        >
+          <FolderOpen className="w-4 h-4" />
+          Documents
         </button>
       </div>
 
-      {/* Chat list */}
-      <div className="flex-1 overflow-y-auto py-2">
-        {chats.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-            <MessageSquare className="w-8 h-8 text-zinc-700 mb-3" />
-            <p className="text-zinc-500 text-xs">No chats yet</p>
-            <p className="text-zinc-600 text-xs mt-1">Click + to start a conversation</p>
-          </div>
-        ) : (
-          Object.entries(groups).map(([label, items]) => {
-            if (!items.length) return null
-            return (
-              <div key={label} className="mb-2">
-                <p className="px-4 py-1.5 text-xs font-medium text-zinc-500 uppercase tracking-wider">
-                  {label}
-                </p>
-                {items.map(chat => (
-                  <ChatRow
-                    key={chat.id}
-                    chat={chat}
-                    isActive={chat.id === currentChatId}
-                    onSelect={onSelectChat}
-                    onDelete={handleDelete}
-                    onRename={handleRename}
-                    deletingId={deletingId}
-                  />
-                ))}
-              </div>
-            )
-          })
-        )}
-      </div>
+      {/* Chat list — shown only when in chat view */}
+      {currentView === 'chat' && (
+        <div className="flex-1 overflow-y-auto py-2">
+          {chats.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+              <MessageSquare className="w-8 h-8 text-zinc-700 mb-3" />
+              <p className="text-zinc-500 text-xs">No chats yet</p>
+              <p className="text-zinc-600 text-xs mt-1">Click + to start a conversation</p>
+            </div>
+          ) : (
+            Object.entries(groups).map(([label, items]) => {
+              if (!items.length) return null
+              return (
+                <div key={label} className="mb-2">
+                  <p className="px-4 py-1.5 text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                    {label}
+                  </p>
+                  {items.map(chat => (
+                    <ChatRow
+                      key={chat.id}
+                      chat={chat}
+                      isActive={chat.id === currentChatId}
+                      onSelect={onSelectChat}
+                      onDelete={handleDelete}
+                      onRename={handleRename}
+                      deletingId={deletingId}
+                    />
+                  ))}
+                </div>
+              )
+            })
+          )}
+        </div>
+      )}
+
+      {/* Documents placeholder when in documents view */}
+      {currentView === 'documents' && (
+        <div className="flex-1 flex items-center justify-center px-4">
+          <p className="text-xs text-zinc-600 text-center leading-relaxed">
+            Switch to Chats to view conversation history
+          </p>
+        </div>
+      )}
 
       {/* User section */}
       {user && (

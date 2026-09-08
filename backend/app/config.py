@@ -4,8 +4,10 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     groq_api_key: str = ""
-    groq_model: str = "groq/compound-mini"
-    top_k: int = 5
+    groq_model: str = "compound-beta-mini"
+    top_k: int = 8
+    chunk_size: int = 300
+    chunk_overlap: int = 50
     jwt_secret: str = "inkira-secret-key-change-in-prod"
     jwt_algorithm: str = "HS256"
     jwt_expire_days: int = 7
@@ -13,6 +15,26 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_service_key: str = ""
     allowed_origins: str = "http://localhost:5173,http://localhost:3000"
+
+    # Email / SMTP settings
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+
+    # Frontend / Backend URLs
+    frontend_url: str = "http://localhost:5173"
+    backend_url: str = "http://localhost:8000"
+
+    # Platform API keys (used server-side for all users)
+    openai_api_key: str = ""
+    anthropic_api_key: str = ""
+    google_api_key: str = ""
+
+    # Google OAuth credentials (for "Sign in with Google")
+    google_client_id: str = ""
+    google_client_secret: str = ""
 
 
 @lru_cache()

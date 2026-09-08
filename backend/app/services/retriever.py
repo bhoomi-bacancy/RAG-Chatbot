@@ -1,5 +1,5 @@
 from typing import List, Optional
-from app.database import search_chunks, user_has_chunks
+from app.database import search_chunks_safe, get_fallback_chunks
 from app.config import settings
 
 
@@ -11,15 +11,17 @@ def retrieve_chunks(
 ) -> List[dict]:
     top_k = top_k or settings.top_k
 
-    if user_id and not user_has_chunks(user_id):
-        return []
-
-    results = search_chunks(
+    results = search_chunks_safe(
         query=query,
         user_id=user_id,
         document_ids=document_ids,
         top_k=top_k,
     )
+
+    # FTS found nothing — fall back to returning chunks directly so the LLM
+    # still has document context even when keywords don't match the question.
+    if not results:
+        results = get_fallback_chunks(user_id, document_ids, top_k)
 
     return [
         {

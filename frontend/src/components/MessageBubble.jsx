@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { ChevronDown, ChevronUp, FileText, Bot } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+
 
 /* ── File type helpers ────────────────────────────────────────────────────── */
 function fileTypeStyle(filename) {
@@ -104,8 +106,30 @@ function ConfidenceTag({ value }) {
   )
 }
 
+function injectSourceLinks(content, sources) {
+  let result = content
+
+  // Pass 1: replace [filename] or [filename, Page N] for each known source
+  for (const src of (sources || [])) {
+    if (!src?.filename) continue
+    const escaped = src.filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = new RegExp(`\\[${escaped}(?:[^\\]]*)\\]`, 'g')
+    result = result.replace(re, `Source: [${src.filename}](doc://${src.document_id || 'docs'})`)
+  }
+
+  // Pass 2: any remaining [Source N] or [Source N: ...] → still make clickable
+  result = result.replace(/\[Source (\d+)(?:[^\]]*)\]/g, (match, n) => {
+    const src = sources?.[parseInt(n, 10) - 1]
+    const label = src?.filename || `Document ${n}`
+    const id = src?.document_id || 'docs'
+    return `Source: [${label}](doc://${id})`
+  })
+
+  return result
+}
+
 /* ── MessageBubble ────────────────────────────────────────────────────────── */
-export default function MessageBubble({ message }) {
+export default function MessageBubble({ message, onOpenDocuments }) {
   const [sourcesOpen, setSourcesOpen] = useState(false)
   const { user } = useAuth()
   const isUser      = message.role === 'user'
@@ -155,7 +179,27 @@ export default function MessageBubble({ message }) {
             </div>
           ) : (
             <>
-              <ReactMarkdown>{message.content}</ReactMarkdown>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: ({ href, children }) => {
+                    if (href?.startsWith('doc://')) {
+                      return (
+                        <button
+                          onClick={() => onOpenDocuments?.()}
+                          className="inline-flex items-center gap-1 text-orange-600 hover:text-orange-700 font-medium underline underline-offset-2 decoration-orange-300 hover:decoration-orange-500 transition-colors"
+                        >
+                          <FileText className="w-3 h-3 shrink-0" />
+                          {children}
+                        </button>
+                      )
+                    }
+                    return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
+                  }
+                }}
+              >
+                {injectSourceLinks(message.content, message.sources)}
+              </ReactMarkdown>
               {/* Blinking cursor while tokens are streaming */}
               {isStreaming && (
                 <span
@@ -168,7 +212,7 @@ export default function MessageBubble({ message }) {
 
         {/* Footer: confidence + sources toggle — only after stream ends */}
         {!isStreaming && message.content && (() => {
-          const cited      = message.content.includes('[Source')
+          const cited = message.sources?.some(s => message.content.includes(s.filename))
           const showSources = cited && message.sources?.length > 0
           return (
             <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -187,7 +231,7 @@ export default function MessageBubble({ message }) {
         })()}
 
         {/* Sources list */}
-        {sourcesOpen && message.content.includes('[Source') && message.sources?.length > 0 && (
+        {sourcesOpen && message.sources?.length > 0 && (
           <div className="mt-2 space-y-1.5">
             {message.sources.map((src, i) => <SourceCard key={i} source={src} index={i + 1} />)}
           </div>

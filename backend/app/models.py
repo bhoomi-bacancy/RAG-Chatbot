@@ -20,6 +20,8 @@ class ChatRequest(BaseModel):
     conversation_history: List[ChatMessage] = []
     document_ids: Optional[List[str]] = None
     chat_id: Optional[str] = None
+    model: Optional[str] = None
+    user_api_key: Optional[str] = None
 
 
 class Source(BaseModel):
@@ -40,6 +42,23 @@ class UploadResponse(BaseModel):
     document_id: str
     filename: str
     chunks_created: int
+    duplicates_removed: int = 0
+    message: str
+
+
+class BatchFileResult(BaseModel):
+    filename: str
+    status: str  # "success" | "error" | "skipped"
+    document_id: Optional[str] = None
+    chunks_created: int = 0
+    duplicates_removed: int = 0
+    error: Optional[str] = None
+
+
+class BatchUploadResponse(BaseModel):
+    results: List[BatchFileResult]
+    total_chunks: int
+    total_duplicates_removed: int
     message: str
 
 
@@ -52,6 +71,15 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     email: str
     password: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
 
 
 class UserPublic(BaseModel):
