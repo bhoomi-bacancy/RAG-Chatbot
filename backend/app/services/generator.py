@@ -8,27 +8,59 @@ from app.config import settings
 groq_client       = Groq(api_key=settings.groq_api_key)
 async_groq_client = AsyncGroq(api_key=settings.groq_api_key)
 
-SYSTEM_PROMPT_WITH_CONTEXT = """You are MedAssist, an intelligent medical Q&A assistant.
+_LANGUAGE_NAMES = {
+    'en': 'English', 'hi': 'Hindi', 'es': 'Spanish',
+    'fr': 'French',  'de': 'German', 'ar': 'Arabic',
+}
+
+def _language_instruction(language: Optional[str]) -> str:
+    name = _LANGUAGE_NAMES.get(language or 'en', 'English')
+    return (
+        f"LANGUAGE RULE: Respond in {name} by default. "
+        f"However, if the user explicitly asks for a different language in their message "
+        f"(e.g. 'answer in French', 'give me the answer in Spanish', 'हिंदी में बताओ'), "
+        f"respond in that requested language instead."
+    )
+
+def _system_with_context(language: Optional[str]) -> str:
+    return f"""You are MedAssist, an intelligent medical Q&A assistant.
 
 The user has uploaded documents. Answer using the retrieved context below.
 - Cite sources using the document filename in square brackets, e.g. [casestudy.pdf].
 - Be clear, concise, and well-structured.
-- If the answer is not in the context, say so and answer from your general knowledge if possible."""
+- If the answer is not in the context, say so and answer from your general knowledge if possible.
+- {_language_instruction(language)}"""
 
-SYSTEM_PROMPT_GENERAL = """You are MedAssist, a helpful AI assistant for medical documents.
+def _system_general(language: Optional[str]) -> str:
+    return f"""You are MedAssist, a helpful AI assistant for medical documents.
 
 No documents have been uploaded yet. Answer the user's question using your general knowledge.
 - Be clear, concise, and well-structured.
-- If the user uploads documents, you will be able to give document-specific answers."""
+- If the user uploads documents, you will be able to give document-specific answers.
+- {_language_instruction(language)}"""
 
 
 # ── Provider routing ───────────────────────────────────────────────────────────
 
 def get_provider(model: str) -> str:
+    # Groq-namespaced models (groq/, openai/gpt-oss-*, qwen/, etc.) all go via Groq API
+    if model.startswith("groq/"):     return "groq"
+    if model.startswith("openai/"):   return "groq"   # gpt-oss-* are Groq-hosted
+    if model.startswith("qwen/"):     return "groq"
+    # User-provided keys for other providers
     if model.startswith("gpt-"):      return "openai"
     if model.startswith("claude-"):   return "anthropic"
     if model.startswith("gemini-"):   return "google"
     return "groq"
+
+
+def _supports_vision(model: str, provider: str) -> bool:
+    """Returns True only for models that accept multimodal (image) message content."""
+    if provider == "anthropic": return True   # All Claude 3+ support vision
+    if provider == "google":    return True   # All Gemini models support vision
+    if provider == "openai":    return True   # GPT-4V and above support vision
+    # Groq-hosted: only gpt-oss models accept image_url content
+    return model.startswith("openai/gpt-oss")
 
 
 _PLACEHOLDER_MARKERS = ("your-", "placeholder", "example", "changeme", "insert", "-here", "xxxxxxx")
@@ -49,34 +81,96 @@ def _platform_key(provider: str) -> Optional[str]:
     return None
 
 
+# ── Multimodal helpers ─────────────────────────────────────────────────────────
+
+def _parse_data_url(data_url: str):
+    """Returns (media_type, base64_data) from a data: URL."""
+    header, data = data_url.split(",", 1)
+    media_type = header.split(":")[1].split(";")[0]
+    return media_type, data
+
+
+def _openai_to_anthropic_content(content):
+    """Convert OpenAI multimodal content list → Anthropic format."""
+    if isinstance(content, str):
+        return content
+    result = []
+    for part in content:
+        if part["type"] == "image_url":
+            media_type, b64 = _parse_data_url(part["image_url"]["url"])
+            result.append({"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}})
+        elif part["type"] == "text":
+            result.append({"type": "text", "text": part["text"]})
+    return result
+
+
+def _openai_to_gemini_parts(content):
+    """Convert OpenAI multimodal content → Gemini parts list."""
+    if isinstance(content, str):
+        return [{"text": content}]
+    parts = []
+    for part in content:
+        if part["type"] == "image_url":
+            media_type, b64 = _parse_data_url(part["image_url"]["url"])
+            parts.append({"inlineData": {"mimeType": media_type, "data": b64}})
+        elif part["type"] == "text":
+            parts.append({"text": part["text"]})
+    return parts
+
+
 # ── Message builders ───────────────────────────────────────────────────────────
+
+# Per-chunk character cap keeps individual chunks from blowing the context window.
+# Groq Compound models have a small context limit; 600 chars/chunk is safe.
+_CHUNK_CHAR_LIMIT = 600
 
 def build_context(chunks: List[dict]) -> str:
     parts = []
-    for chunk in chunks:
-        parts.append(f"[{chunk['filename']}, Page {chunk['page_number']}]\n{chunk['text']}")
+    for chunk in chunks[:3]:   # top-3 chunks only — more than enough for RAG
+        text = chunk['text']
+        if len(text) > _CHUNK_CHAR_LIMIT:
+            text = text[:_CHUNK_CHAR_LIMIT] + "…"
+        parts.append(f"[{chunk['filename']}, Page {chunk['page_number']}]\n{text}")
     return "\n\n---\n\n".join(parts)
 
 
 def calculate_confidence(chunks: List[dict]) -> Optional[float]:
     if not chunks:
         return None
-    avg = sum(c["similarity"] for c in chunks) / len(chunks)
-    return round(min(avg, 1.0), 3)
+    scored = [c["similarity"] for c in chunks if c["similarity"] > 0]
+    if not scored:
+        return None
+    top_scores = sorted(scored)[-3:]
+    avg = sum(top_scores) / len(top_scores)
+    normalized = min(avg / 0.30, 1.0)
+    return round(normalized, 3)
 
 
-def build_messages(query: str, chunks: List[dict], history: List[dict]) -> List[dict]:
+def build_messages(query: str, chunks: List[dict], history: List[dict], language: Optional[str] = None, images: Optional[List[str]] = None) -> List[dict]:
     if chunks:
-        system = SYSTEM_PROMPT_WITH_CONTEXT
+        system = _system_with_context(language)
         context = build_context(chunks)
-        user_content = f"RETRIEVED CONTEXT:\n\n{context}\n\n---\n\nQUESTION: {query}"
+        text_content = f"RETRIEVED CONTEXT:\n\n{context}\n\n---\n\nQUESTION: {query}"
     else:
-        system = SYSTEM_PROMPT_GENERAL
-        user_content = query
+        system = _system_general(language)
+        text_content = query
 
     messages = [{"role": "system", "content": system}]
-    for msg in history[-6:]:
-        messages.append({"role": msg["role"], "content": msg["content"]})
+    for msg in history[-2:]:
+        content = msg["content"]
+        if len(content) > 400:
+            content = content[:400] + "…"
+        messages.append({"role": msg["role"], "content": content})
+
+    # Build last user message — multimodal if images attached
+    if images:
+        user_content = []
+        for img_url in images[:4]:  # max 4 images
+            user_content.append({"type": "image_url", "image_url": {"url": img_url}})
+        user_content.append({"type": "text", "text": text_content})
+    else:
+        user_content = text_content
+
     messages.append({"role": "user", "content": user_content})
     return messages
 
@@ -108,7 +202,11 @@ async def _stream_tokens_openai(messages: List[dict], model: str, api_key: str) 
 async def _stream_tokens_anthropic(messages: List[dict], model: str, api_key: str) -> AsyncIterator[str]:
     import anthropic as sdk
     system = next((m["content"] for m in messages if m["role"] == "system"), "")
-    msgs = [m for m in messages if m["role"] != "system"]
+    msgs = []
+    for m in messages:
+        if m["role"] == "system":
+            continue
+        msgs.append({"role": m["role"], "content": _openai_to_anthropic_content(m["content"])})
     client = sdk.AsyncAnthropic(api_key=api_key)
     async with client.messages.stream(
         model=model, max_tokens=2048, system=system, messages=msgs
@@ -126,7 +224,7 @@ async def _stream_tokens_google(messages: List[dict], model: str, api_key: str) 
     contents = [
         {
             "role": "user" if m["role"] == "user" else "model",
-            "parts": [{"text": m["content"]}],
+            "parts": _openai_to_gemini_parts(m["content"]),
         }
         for m in msgs
     ]
@@ -184,11 +282,20 @@ def generate_response(
     history: List[dict],
     model: Optional[str] = None,
     user_id: Optional[str] = None,
+    language: Optional[str] = None,
+    images: Optional[List[str]] = None,
 ) -> tuple[str, Optional[float]]:
     """Synchronous (non-streaming) response — used by the non-streaming endpoint."""
     model = model or settings.groq_model
     provider = get_provider(model)
-    messages = build_messages(query, chunks, history)
+    if images and not _supports_vision(model, provider):
+        return (
+            "⚠️ This model doesn't support image analysis. "
+            "Please select GPT OSS 20B or 120B (Vision ✦ badge) from the model picker, "
+            "or connect your OpenAI / Anthropic / Google account.",
+            None,
+        )
+    messages = build_messages(query, chunks, history, language, images)
     confidence = calculate_confidence(chunks)
 
     if provider == "groq":
@@ -210,7 +317,7 @@ def generate_response(
     if provider == "anthropic":
         import anthropic as sdk
         system = next((m["content"] for m in messages if m["role"] == "system"), "")
-        msgs = [m for m in messages if m["role"] != "system"]
+        msgs = [{"role": m["role"], "content": _openai_to_anthropic_content(m["content"])} for m in messages if m["role"] != "system"]
         client = sdk.Anthropic(api_key=api_key)
         resp = client.messages.create(model=model, max_tokens=2048, system=system, messages=msgs)
         return resp.content[0].text, confidence
@@ -220,7 +327,7 @@ def generate_response(
         system = next((m["content"] for m in messages if m["role"] == "system"), "")
         msgs = [m for m in messages if m["role"] != "system"]
         contents = [
-            {"role": "user" if m["role"] == "user" else "model", "parts": [{"text": m["content"]}]}
+            {"role": "user" if m["role"] == "user" else "model", "parts": _openai_to_gemini_parts(m["content"])}
             for m in msgs
         ]
         payload: dict = {"contents": contents, "generationConfig": {"maxOutputTokens": 2048}}
@@ -244,6 +351,8 @@ async def stream_response(
     chat_id: Optional[str] = None,
     model: Optional[str] = None,
     user_api_key: Optional[str] = None,
+    language: Optional[str] = None,
+    images: Optional[List[str]] = None,
 ) -> AsyncIterator[str]:
     """Async generator — yields SSE-formatted strings."""
     model = model or settings.groq_model
@@ -262,7 +371,19 @@ async def stream_response(
     ]
     yield f"data: {json.dumps({'type': 'sources', 'data': sources_payload})}\n\n"
 
-    messages = build_messages(query, chunks, history)
+    # If images were attached but the model can't handle them, explain and stop early
+    if images and not _supports_vision(model, provider):
+        err_msg = (
+            "⚠️ **This model doesn't support image analysis.**\n\n"
+            "To ask questions about images, please select a model with the **Vision ✦** badge "
+            "(GPT OSS 20B or GPT OSS 120B) from the model picker, "
+            "or connect your OpenAI / Anthropic / Google account."
+        )
+        yield f"data: {json.dumps({'type': 'token', 'data': err_msg})}\n\n"
+        yield f"data: {json.dumps({'type': 'done', 'confidence': None})}\n\n"
+        return
+
+    messages = build_messages(query, chunks, history, language, images)
     confidence = calculate_confidence(chunks)
 
     # 2. Resolve API key: request key > stored key > platform key
@@ -330,16 +451,55 @@ async def stream_response(
         print(f"[stream] Provider error ({provider}/{model}): {type(e).__name__}: {e}")
         err_str = str(e).lower()
         err_type = type(e).__name__.lower()
-        if "401" in err_str or "invalid" in err_str or "api key" in err_str or "unauthorized" in err_str or "authentication" in err_str:
+
+        # Billing / quota exhausted — check FIRST so it doesn't fall into rate-limit or unknown
+        _is_billing = (
+            "insufficient_quota" in err_str or          # OpenAI: out of credits
+            "exceeded your current quota" in err_str or  # OpenAI: free-tier exhausted
+            "billing hard limit" in err_str or           # OpenAI: hard spend cap hit
+            "insufficient_funds" in err_str or           # OpenAI / generic
+            "payment required" in err_str or             # HTTP 402
+            "402" in err_str or
+            "credit balance" in err_str or               # Anthropic: low credit balance
+            "credit_balance_too_low" in err_str or       # Anthropic error code
+            "resource_exhausted" in err_str or           # Google: RESOURCE_EXHAUSTED
+            "billing account" in err_str or              # Google: billing not set up
+            ("quota" in err_str and "billing" in err_str)
+        )
+
+        # Auth errors: be specific — "invalid" alone matches invalid_request_error (model errors)
+        _is_auth = (
+            "401" in err_str or
+            "invalid_api_key" in err_str or
+            "unauthorized" in err_str or
+            ("invalid" in err_str and "api key" in err_str)
+        )
+
+        if _is_billing:
+            dashboard = {
+                "openai":    "https://platform.openai.com/account/billing",
+                "anthropic": "https://console.anthropic.com/settings/billing",
+                "google":    "https://aistudio.google.com",
+                "groq":      "https://console.groq.com",
+            }.get(provider, f"the {provider.title()} dashboard")
+            err_msg = (
+                f"⚠️ Your {provider.title()} account has run out of credits or has a billing issue. "
+                f"Please add credits or upgrade your plan at {dashboard}."
+            )
+        elif _is_auth:
             err_msg = f"⚠️ Your {provider.title()} API key is invalid or expired. Please reconnect in the model picker."
         elif "connection" in err_type or "apiconnection" in err_type or "connection error" in err_str:
-            err_msg = f"⚠️ Could not connect to {provider.title()}. Check that GROQ_API_KEY is set in your Vercel environment variables."
-        elif "429" in err_str or "rate limit" in err_str or "quota" in err_str:
-            err_msg = f"⚠️ {provider.title()} rate limit reached. Please try again in a moment."
+            err_msg = f"⚠️ Could not connect to {provider.title()}. Check your network or try again."
+        elif "429" in err_str or "rate limit" in err_str or "too many requests" in err_str:
+            err_msg = f"⚠️ {provider.title()} rate limit reached. Please wait a moment and try again."
         elif "timeout" in err_str or "timed out" in err_str or "deadline" in err_str:
             err_msg = "⚠️ The request timed out. Please try again."
-        elif "not found" in err_str or "404" in err_str or "does not exist" in err_str:
-            err_msg = f"⚠️ Model not found. Please select a different {provider.title()} model."
+        elif "must be a string" in err_str or "content must be" in err_str or ("invalid" in err_str and "content" in err_str and "string" in err_str):
+            err_msg = "⚠️ This model does not support image analysis. Please select GPT OSS 120B or connect an OpenAI / Anthropic / Google account for vision support."
+        elif "413" in err_str or "request entity too large" in err_str or "payload too large" in err_str or "context_length_exceeded" in err_str or "maximum context" in err_str or "too many tokens" in err_str:
+            err_msg = "⚠️ Your message or conversation history is too long for this model. Try starting a new chat or switching to a model with a larger context window."
+        elif "not found" in err_str or "404" in err_str or "does not exist" in err_str or "model_not_found" in err_str or "decommissioned" in err_str or "deprecated" in err_str or "no longer" in err_str or ("invalid" in err_str and "model" in err_str):
+            err_msg = f"⚠️ The model '{model}' is no longer available on {provider.title()}. Please select a different model."
         else:
             err_msg = f"⚠️ {provider.title()} error ({type(e).__name__}): {str(e)[:120]}"
         yield f"data: {json.dumps({'type': 'token', 'data': err_msg})}\n\n"

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { ArrowUp, Paperclip, X, Loader2, Sparkles, MessageSquare, FileText, ChevronDown } from 'lucide-react'
+import { ArrowUp, Paperclip, X, Loader2, Sparkles, MessageSquare, FileText, ChevronDown, ImagePlus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import i18n from '../i18n'
 import { streamChat, getChat, createChat, uploadDocument, renameChat, getConfiguredProviders, getMyProviderKeys, deleteProviderKey } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import MessageBubble from './MessageBubble'
@@ -16,13 +18,6 @@ function getProviderForModel(modelId) {
   if (modelId.startsWith('gemini-')) return 'google'
   return 'groq'
 }
-
-const SUGGESTIONS = [
-  'Summarize the uploaded document',
-  'What are the key findings?',
-  'Explain the main concepts',
-  'List the important points',
-]
 
 /* ── File card helpers ────────────────────────────────────────────────────── */
 function fileTypeStyle(filename) {
@@ -64,12 +59,13 @@ function AttachmentChip({ name, size, onRemove }) {
 
 export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onOpenDocuments, freshlyConnectedProvider }) {
   const { user, updateUser } = useAuth()
+  const { t } = useTranslation()
   const [messages, setMessages]           = useState([])
   const [input, setInput]                 = useState('')
   const [streaming, setStreaming]         = useState(false)
   const [attachedFiles, setAttachedFiles] = useState([])
   const [loadingChat, setLoadingChat]     = useState(false)
-  const [selectedModel, setSelectedModel] = useState('compound-beta-mini')
+  const [selectedModel, setSelectedModel] = useState('groq/compound-mini')
   const [showModelPicker, setShowModelPicker] = useState(false)
   const [connectedProviders, setConnectedProviders] = useState([])
   const [connectedProviderKeys, setConnectedProviderKeys] = useState({})
@@ -77,10 +73,14 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
   const [pendingModel, setPendingModel] = useState(null)  // model user tried to select before connecting
   const [platformProviders, setPlatformProviders] = useState(['groq'])
 
+  const [attachedImages, setAttachedImages] = useState([])
+
   const scrollRef      = useRef(null)
   const textareaRef    = useRef(null)
   const fileInputRef   = useRef(null)
+  const imageInputRef  = useRef(null)
   const skipReloadRef  = useRef(false)
+  const isSendingRef   = useRef(false)  // synchronous guard — prevents double-send
   const lastUserMsgRef = useRef(null)   // ref to last user message element
   const prevLengthRef  = useRef(0)      // tracks message count for detecting new pairs
   const chatsRef       = useRef(chats)  // always-current chats list for use inside callbacks
@@ -159,22 +159,62 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
 
   /* ── Send message ───────────────────────────────────────────────────────── */
   const sendMessage = useCallback(async text => {
-    if (!text.trim() || streaming) return
+    if (!text.trim() || isSendingRef.current) return
+    isSendingRef.current = true
 
+    // ── 1. Instant UI feedback — clear input and show spinner immediately ──
+    const trimmed = text.trim()
+    const snapshot = attachedFiles.slice()
+    const attachments = snapshot.map(f => ({ name: f.name, size: f.file?.size }))
+    const imageSnapshot = attachedImages.slice()
+    const imageAttachments = imageSnapshot.map(img => ({ name: img.name, dataUrl: img.dataUrl }))
+
+    const userMsgId   = nextId()
+    const assistantId = nextId()
+    const userMsg = {
+      id: userMsgId, role: 'user', content: trimmed,
+      sources: [], streaming: false, attachments, imageAttachments,
+    }
+    const assistantMsg = {
+      id: assistantId, role: 'assistant', content: '',
+      sources: [], confidence: undefined, streaming: true, attachments: [],
+    }
+
+    setMessages(prev => [...prev, userMsg, assistantMsg])
+    setStreaming(true)
+    setInput('')
+    setAttachedFiles([])
+    setAttachedImages([])
+    if (textareaRef.current) textareaRef.current.style.height = 'auto'
+
+    // ── 2. Async setup (chat creation + file upload) ───────────────────────
+    const immediateTitle = trimmed.slice(0, 60)
     let activeChatId = chatId
     if (!activeChatId) {
       try {
         const { data: newChat } = await createChat('New Chat')
         activeChatId = newChat.id
-        setChats(prev => [newChat, ...prev])
+        // Set title immediately — sidebar shows it before the response arrives
+        setChats(prev => [{ ...newChat, title: immediateTitle }, ...prev])
         skipReloadRef.current = true
         onChatCreated(newChat.id)
-      } catch { return }
+      } catch {
+        setMessages(prev => prev.filter(m => m.id !== userMsgId && m.id !== assistantId))
+        setStreaming(false)
+        isSendingRef.current = false
+        return
+      }
+    } else {
+      // Existing chat still called 'New Chat' — rename immediately on first real message
+      const existingTitle = chatsRef.current.find(c => c.id === activeChatId)?.title
+      if (existingTitle === 'New Chat') {
+        setChats(prev => prev.map(c =>
+          c.id === activeChatId ? { ...c, title: immediateTitle } : c
+        ))
+        renameChat(activeChatId, immediateTitle).catch(() => {})
+      }
     }
 
-    // Upload attachments first
-    const snapshot = attachedFiles.slice()
-    setAttachedFiles([])
     let documentIds = []
     if (snapshot.length > 0) {
       const results = await Promise.allSettled(
@@ -185,28 +225,13 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
         .map(r => r.value.data.document_id)
     }
 
-    const attachments = snapshot.map(f => ({ name: f.name, size: f.file?.size }))
-    const userMsg = {
-      id: nextId(), role: 'user', content: text.trim(),
-      sources: [], streaming: false, attachments,
-    }
-    const assistantId = nextId()
-    const assistantMsg = {
-      id: assistantId, role: 'assistant', content: '',
-      sources: [], confidence: undefined, streaming: true, attachments: [],
-    }
-
-    setMessages(prev => [...prev, userMsg, assistantMsg])
-    setInput('')
-    setStreaming(true)
-    if (textareaRef.current) textareaRef.current.style.height = 'auto'
-
+    // ── 3. Stream the response ─────────────────────────────────────────────
     const currentProvider = getProviderForModel(selectedModel)
     const userApiKey = connectedProviderKeys[currentProvider] || null
 
     try {
       await streamChat(
-        { message: text.trim(), conversationHistory, documentIds, chatId: activeChatId, model: selectedModel, userApiKey },
+        { message: trimmed, conversationHistory, documentIds, chatId: activeChatId, model: selectedModel, userApiKey, language: i18n.language, images: imageSnapshot.map(img => img.dataUrl) },
         {
           onSources: sources =>
             setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, sources } : m)),
@@ -220,15 +245,6 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
             ))
             setStreaming(false)
             updateUser({ daily_usage: (user?.daily_usage || 0) + 1 })
-            // Auto-title the chat from the first message and persist it
-            const currentTitle = chatsRef.current.find(c => c.id === activeChatId)?.title
-            if (currentTitle === 'New Chat') {
-              const newTitle = text.trim().slice(0, 60)
-              setChats(prev => prev.map(c =>
-                c.id === activeChatId ? { ...c, title: newTitle } : c
-              ))
-              renameChat(activeChatId, newTitle).catch(() => {})
-            }
           },
           onError: err => {
             setMessages(prev => prev.map(m =>
@@ -245,8 +261,61 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
           : m
       ))
       setStreaming(false)
+    } finally {
+      isSendingRef.current = false
     }
-  }, [chatId, streaming, attachedFiles, conversationHistory, user, setChats, onChatCreated, updateUser, selectedModel, connectedProviderKeys])
+  }, [chatId, attachedFiles, conversationHistory, user, setChats, onChatCreated, updateUser, selectedModel, connectedProviderKeys])
+
+  /* ── Regenerate ────────────────────────────────────────────────────────── */
+  const regenerateMessage = useCallback(async (assistantMsgId, userQuery, history) => {
+    if (isSendingRef.current) return
+    isSendingRef.current = true
+
+    setMessages(prev => prev.map(m =>
+      m.id === assistantMsgId
+        ? { ...m, content: '', sources: [], confidence: undefined, streaming: true }
+        : m
+    ))
+    setStreaming(true)
+
+    const currentProvider = getProviderForModel(selectedModel)
+    const userApiKey = connectedProviderKeys[currentProvider] || null
+
+    try {
+      await streamChat(
+        { message: userQuery, conversationHistory: history, documentIds: [], chatId, model: selectedModel, userApiKey, language: i18n.language },
+        {
+          onSources: sources =>
+            setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, sources } : m)),
+          onToken: token =>
+            setMessages(prev => prev.map(m =>
+              m.id === assistantMsgId ? { ...m, content: m.content + token } : m
+            )),
+          onDone: confidence => {
+            setMessages(prev => prev.map(m =>
+              m.id === assistantMsgId ? { ...m, confidence, streaming: false } : m
+            ))
+            setStreaming(false)
+          },
+          onError: err => {
+            setMessages(prev => prev.map(m =>
+              m.id === assistantMsgId ? { ...m, content: `Error: ${err}`, streaming: false } : m
+            ))
+            setStreaming(false)
+          },
+        }
+      )
+    } catch {
+      setMessages(prev => prev.map(m =>
+        m.id === assistantMsgId
+          ? { ...m, content: 'Something went wrong. Please try again.', streaming: false }
+          : m
+      ))
+      setStreaming(false)
+    } finally {
+      isSendingRef.current = false
+    }
+  }, [chatId, selectedModel, connectedProviderKeys])
 
   const handleKeyDown         = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }
   const handleTextareaChange  = e => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px' }
@@ -265,6 +334,36 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
     e.target.value = ''
   }
   const removeFile = name => setAttachedFiles(prev => prev.filter(f => f.name !== name))
+
+  const compressImage = (file) => new Promise(resolve => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const MAX = 1024
+      let { width, height } = img
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+        else { width = Math.round(width * MAX / height); height = MAX }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width; canvas.height = height
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+      URL.revokeObjectURL(url)
+      resolve({ name: file.name, dataUrl: canvas.toDataURL('image/jpeg', 0.85) })
+    }
+    img.src = url
+  })
+
+  const handleImageChange = async (e) => {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    const allowed = files.filter(f => f.type.startsWith('image/')).slice(0, 4 - attachedImages.length)
+    const compressed = await Promise.all(allowed.map(compressImage))
+    setAttachedImages(prev => [...prev, ...compressed].slice(0, 4))
+    e.target.value = ''
+  }
+
+  const removeImage = (name) => setAttachedImages(prev => prev.filter(i => i.name !== name))
 
   const handleOpenModelPicker = () => setShowModelPicker(true)
 
@@ -293,11 +392,18 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
     // If current model belongs to disconnected provider, reset to default
     const providerMeta = PROVIDERS.find(p => p.id === providerId)
     if (providerMeta?.models.some(m => m.id === selectedModel)) {
-      setSelectedModel('compound-beta-mini')
+      setSelectedModel('groq/compound-mini')
     }
   }
 
-  const barProps = { input, streaming, attachedFiles, removeFile, fileInputRef, handleFileChange, handleTextareaChange, handleKeyDown, sendMessage, textareaRef, selectedModel, onOpenModelPicker: handleOpenModelPicker }
+  const SUGGESTIONS = [
+    t('chat.suggestions.summarize'),
+    t('chat.suggestions.findings'),
+    t('chat.suggestions.explain'),
+    t('chat.suggestions.list'),
+  ]
+
+  const barProps = { input, streaming, attachedFiles, removeFile, fileInputRef, handleFileChange, attachedImages, removeImage, imageInputRef, handleImageChange, handleTextareaChange, handleKeyDown, sendMessage, textareaRef, selectedModel, onOpenModelPicker: handleOpenModelPicker, t }
 
   /* ── Welcome screen ─────────────────────────────────────────────────────── */
   if (!chatId && messages.length === 0) {
@@ -308,9 +414,9 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
             <div className="w-14 h-14 rounded-full bg-orange-500 flex items-center justify-center mx-auto mb-4">
               <Sparkles className="w-7 h-7 text-white" />
             </div>
-            <h1 className="text-2xl font-semibold text-zinc-900">How can I help you?</h1>
+            <h1 className="text-2xl font-semibold text-zinc-900">{t('chat.greeting')}</h1>
             <p className="text-sm text-zinc-500 mt-2 max-w-sm">
-              Start a conversation or try a suggestion below.
+              {t('chat.greetingSubtitle')}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 w-full max-w-lg">
@@ -359,15 +465,26 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 px-4">
             <MessageSquare className="w-10 h-10 text-zinc-200" />
-            <p className="text-sm text-zinc-400">No messages yet — send one to get started.</p>
+            <p className="text-sm text-zinc-400">{t('chat.noMessages')}</p>
           </div>
         ) : (
           <div className="max-w-3xl mx-auto w-full py-6">
             {messages.map((msg, i) => {
               const isLastUser = msg.role === 'user' && i === messages.length - 2
+              // Build history up to (not including) the user msg before this assistant msg
+              const regenHandler = msg.role === 'assistant' && !msg.streaming && messages[i - 1]?.role === 'user'
+                ? () => {
+                    const prevUserMsg = messages[i - 1]
+                    const history = messages
+                      .slice(0, i - 1)
+                      .filter(m => !m.streaming)
+                      .map(m => ({ role: m.role, content: m.content }))
+                    regenerateMessage(msg.id, prevUserMsg.content, history)
+                  }
+                : null
               return (
                 <div key={msg.id} ref={isLastUser ? lastUserMsgRef : null}>
-                  <MessageBubble message={msg} onOpenDocuments={onOpenDocuments} />
+                  <MessageBubble message={msg} onOpenDocuments={onOpenDocuments} onRegenerate={regenHandler} />
                 </div>
               )
             })}
@@ -397,20 +514,43 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
 }
 
 /* ── InputBar ─────────────────────────────────────────────────────────────── */
-function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, handleFileChange, handleTextareaChange, handleKeyDown, sendMessage, textareaRef, selectedModel, onOpenModelPicker }) {
-  const modelLabel = MODELS.find(m => m.id === selectedModel)?.name ?? selectedModel
+function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, handleFileChange, attachedImages, removeImage, imageInputRef, handleImageChange, handleTextareaChange, handleKeyDown, sendMessage, textareaRef, selectedModel, onOpenModelPicker, t }) {
+  const modelMeta  = MODELS.find(m => m.id === selectedModel)
+  const modelLabel = modelMeta?.name ?? selectedModel
+  const visionWarning = attachedImages.length > 0 && modelMeta?.vision === false
 
   return (
     <div className="shrink-0 px-4 pb-5 pt-3 bg-white border-t border-zinc-100">
       <div className="max-w-3xl mx-auto">
+        {visionWarning && (
+          <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-700">
+            <ImagePlus className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+            <span>
+              <strong>{modelLabel}</strong> doesn't support image analysis.
+              Switch to a <strong>Vision ✦</strong> model (GPT OSS 20B / 120B) to analyze images.
+            </span>
+          </div>
+        )}
         <div className={`relative bg-white border rounded-2xl shadow-sm transition-all ${streaming ? 'border-zinc-200' : 'border-zinc-200 hover:border-zinc-300 focus-within:border-zinc-400 focus-within:shadow-md'}`}>
 
           <input ref={fileInputRef} type="file" accept=".pdf,.docx,.doc,.txt" multiple className="hidden" onChange={handleFileChange} />
+          <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageChange} />
 
-          {attachedFiles.length > 0 && (
+          {(attachedFiles.length > 0 || attachedImages.length > 0) && (
             <div className="flex flex-wrap gap-2 px-3 pt-3 pb-1">
               {attachedFiles.map(({ name, file }) => (
                 <AttachmentChip key={name} name={name} size={formatBytes(file?.size)} onRemove={() => removeFile(name)} />
+              ))}
+              {attachedImages.map(({ name, dataUrl }) => (
+                <div key={name} className="relative group">
+                  <img src={dataUrl} alt={name} className="w-16 h-16 object-cover rounded-xl border border-zinc-200" />
+                  <button
+                    onClick={() => removeImage(name)}
+                    className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full bg-zinc-700 hover:bg-red-500 text-white transition"
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </div>
               ))}
             </div>
           )}
@@ -420,7 +560,7 @@ function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, h
             value={input}
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
-            placeholder="Message Inkira…"
+            placeholder={t('chat.placeholder')}
             disabled={streaming}
             rows={1}
             className="w-full resize-none bg-transparent text-sm text-zinc-900 placeholder-zinc-400 outline-none px-4 pt-3 pb-12 leading-relaxed disabled:cursor-not-allowed"
@@ -433,24 +573,33 @@ function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, h
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={streaming || attachedFiles.length >= 3}
-                title="Attach PDF, DOCX, or TXT — max 3 files, 4 MB each"
+                title={t('chat.attachTitle')}
                 className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Paperclip className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={streaming || attachedImages.length >= 4}
+                title="Attach image"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ImagePlus className="w-4 h-4" />
               </button>
 
               <button
                 type="button"
                 onClick={onOpenModelPicker}
                 disabled={streaming}
-                title="Select AI model"
+                title={t('chat.selectModel')}
                 className="flex items-center gap-1 h-7 px-2 rounded-lg text-xs text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 transition disabled:opacity-30 disabled:cursor-not-allowed font-medium"
               >
                 <span className="truncate max-w-[120px]">{modelLabel}</span>
                 <ChevronDown className="w-3 h-3 shrink-0" />
               </button>
 
-              {streaming && <span className="text-xs text-zinc-400">Generating…</span>}
+              {streaming && <span className="text-xs text-zinc-400">{t('chat.generating')}</span>}
             </div>
 
             <button
@@ -467,7 +616,7 @@ function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, h
         </div>
 
         <p className="text-center text-xs text-zinc-400 mt-2">
-          Inkira can make mistakes. Verify important information.
+          {t('chat.disclaimer')}
         </p>
       </div>
     </div>

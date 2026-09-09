@@ -10,12 +10,11 @@ export const PROVIDERS = [
     accentCls: 'text-orange-600 bg-orange-50 border-orange-200',
     dotCls: 'bg-orange-500',
     models: [
-      { id: 'compound-beta-mini', name: 'Compound Beta Mini', badge: 'Default',      badgeCls: 'bg-orange-100 text-orange-700', Icon: Zap,  desc: 'Fast everyday queries' },
-      { id: 'compound-beta',      name: 'Compound Beta',      badge: 'Balanced',     badgeCls: 'bg-blue-100 text-blue-700',    Icon: Brain, desc: 'Better reasoning + tool use' },
-      { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', badge: 'Powerful',   badgeCls: 'bg-purple-100 text-purple-700',Icon: Brain, desc: 'Complex tasks' },
-      { id: 'llama-3.1-8b-instant',    name: 'Llama 3.1 8B',  badge: 'Fastest',    badgeCls: 'bg-green-100 text-green-700',  Icon: Zap,  desc: 'Ultra-fast responses' },
-      { id: 'mixtral-8x7b-32768',      name: 'Mixtral 8x7B',  badge: 'Long Context',badgeCls: 'bg-indigo-100 text-indigo-700',Icon: Cpu,  desc: '32k token window' },
-      { id: 'gemma2-9b-it',            name: 'Gemma 2 9B',    badge: 'Efficient',   badgeCls: 'bg-teal-100 text-teal-700',   Icon: Cpu,  desc: 'Google instruction-tuned' },
+      { id: 'groq/compound-mini',    name: 'Compound Mini',   badge: 'Default',   badgeCls: 'bg-orange-100 text-orange-700', Icon: Zap,   desc: 'Fast everyday queries',          vision: false },
+      { id: 'groq/compound',         name: 'Compound',        badge: 'Balanced',  badgeCls: 'bg-blue-100 text-blue-700',    Icon: Brain, desc: 'Better reasoning + tool use',     vision: false },
+      { id: 'openai/gpt-oss-20b',    name: 'GPT OSS 20B',    badge: 'Vision ✦',  badgeCls: 'bg-green-100 text-green-700',  Icon: Zap,   desc: 'OpenAI OSS — vision + ultra-fast', vision: true },
+      { id: 'openai/gpt-oss-120b',   name: 'GPT OSS 120B',   badge: 'Vision ✦',  badgeCls: 'bg-indigo-100 text-indigo-700',Icon: Brain, desc: 'OpenAI OSS — vision + most capable',vision: true },
+      { id: 'qwen/qwen3.6-27b',      name: 'Qwen 3 27B',     badge: 'Multilingual', badgeCls: 'bg-teal-100 text-teal-700', Icon: Cpu,   desc: 'Great multilingual support',      vision: false },
     ],
   },
   {
@@ -28,8 +27,8 @@ export const PROVIDERS = [
     iconLabel: 'O',
     keyUrl: 'https://platform.openai.com/api-keys',
     models: [
-      { id: 'gpt-4o',      name: 'GPT-4o',      badge: 'Smartest', badgeCls: 'bg-emerald-100 text-emerald-700', Icon: Brain, desc: 'Most capable GPT model' },
-      { id: 'gpt-4o-mini', name: 'GPT-4o Mini', badge: 'Fast',     badgeCls: 'bg-green-100 text-green-700',    Icon: Zap,   desc: 'Efficient and affordable' },
+      { id: 'gpt-4o',      name: 'GPT-4o',      badge: 'Smartest', badgeCls: 'bg-emerald-100 text-emerald-700', Icon: Brain, desc: 'Most capable GPT model',     vision: true },
+      { id: 'gpt-4o-mini', name: 'GPT-4o Mini', badge: 'Fast',     badgeCls: 'bg-green-100 text-green-700',    Icon: Zap,   desc: 'Efficient and affordable',  vision: true },
     ],
   },
   {
@@ -42,9 +41,9 @@ export const PROVIDERS = [
     iconLabel: 'A',
     keyUrl: 'https://console.anthropic.com/settings/keys',
     models: [
-      { id: 'claude-opus-4-8',        name: 'Claude Opus 4',   badge: 'Most Capable', badgeCls: 'bg-amber-100 text-amber-700',  Icon: Brain, desc: 'Best for complex tasks' },
-      { id: 'claude-sonnet-4-6',      name: 'Claude Sonnet 4', badge: 'Balanced',     badgeCls: 'bg-orange-100 text-orange-700',Icon: Brain, desc: 'Smart and efficient' },
-      { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', badge: 'Fast',   badgeCls: 'bg-yellow-100 text-yellow-700', Icon: Zap,   desc: 'Quick and lightweight' },
+      { id: 'claude-opus-4-8',        name: 'Claude Opus 4',   badge: 'Most Capable', badgeCls: 'bg-amber-100 text-amber-700',  Icon: Brain, desc: 'Best for complex tasks',   vision: true },
+      { id: 'claude-sonnet-4-6',      name: 'Claude Sonnet 4', badge: 'Balanced',     badgeCls: 'bg-orange-100 text-orange-700',Icon: Brain, desc: 'Smart and efficient',      vision: true },
+      { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', badge: 'Fast',   badgeCls: 'bg-yellow-100 text-yellow-700', Icon: Zap,   desc: 'Quick and lightweight',  vision: true },
     ],
   },
   {
@@ -57,9 +56,9 @@ export const PROVIDERS = [
     iconLabel: 'G',
     keyUrl: 'https://aistudio.google.com/apikey',
     models: [
-      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', badge: 'Latest',       badgeCls: 'bg-blue-100 text-blue-700',   Icon: Zap,  desc: 'Fastest Gemini model' },
-      { id: 'gemini-1.5-pro',   name: 'Gemini 1.5 Pro',   badge: 'Long Context', badgeCls: 'bg-indigo-100 text-indigo-700',Icon: Brain, desc: '1M token context window' },
-      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', badge: 'Efficient',    badgeCls: 'bg-sky-100 text-sky-700',    Icon: Cpu,  desc: 'Fast multimodal model' },
+      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', badge: 'Latest',       badgeCls: 'bg-blue-100 text-blue-700',   Icon: Zap,  desc: 'Fastest Gemini model',    vision: true },
+      { id: 'gemini-1.5-pro',   name: 'Gemini 1.5 Pro',   badge: 'Long Context', badgeCls: 'bg-indigo-100 text-indigo-700',Icon: Brain, desc: '1M token context window', vision: true },
+      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', badge: 'Efficient',    badgeCls: 'bg-sky-100 text-sky-700',    Icon: Cpu,  desc: 'Fast multimodal model',  vision: true },
     ],
   },
 ]
