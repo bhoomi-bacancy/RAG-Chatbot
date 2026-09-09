@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Bot, Plus, Trash2, MessageSquare, LogOut, Pencil, Check, X, FolderOpen } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { listChats, createChat, deleteChat, renameChat } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
+import LanguagePicker from './LanguagePicker'
 
 function timeAgo(dateStr) {
   const date = new Date(dateStr)
@@ -30,7 +32,7 @@ function groupChats(chats) {
 }
 
 /* ── Inline-editable chat row ─────────────────────────────────────────────── */
-function ChatRow({ chat, isActive, onSelect, onDelete, onRename, deletingId }) {
+function ChatRow({ chat, isActive, onSelect, onDelete, onRename, deletingId, t }) {
   const [hovered,  setHovered]  = useState(false)
   const [editing,  setEditing]  = useState(false)
   const [draft,    setDraft]    = useState(chat.title)
@@ -115,7 +117,7 @@ function ChatRow({ chat, isActive, onSelect, onDelete, onRename, deletingId }) {
             <div className="flex items-center gap-0.5 shrink-0" onClick={e => e.stopPropagation()}>
               <button
                 onClick={startEdit}
-                title="Rename"
+                title={t('sidebar.rename')}
                 className="w-6 h-6 flex items-center justify-center rounded text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700 transition"
               >
                 <Pencil className="w-3.5 h-3.5" />
@@ -123,7 +125,7 @@ function ChatRow({ chat, isActive, onSelect, onDelete, onRename, deletingId }) {
               <button
                 onClick={e => onDelete(e, chat.id)}
                 disabled={deletingId === chat.id}
-                title="Delete"
+                title={t('sidebar.delete')}
                 className="w-6 h-6 flex items-center justify-center rounded text-zinc-500 hover:text-red-400 hover:bg-zinc-700 transition"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -142,6 +144,7 @@ export default function Sidebar({
   currentView, onSetView,
 }) {
   const { user, logout } = useAuth()
+  const { t } = useTranslation()
   const [deletingId,   setDeletingId]   = useState(null)
   const [creatingChat, setCreatingChat] = useState(false)
 
@@ -160,7 +163,7 @@ export default function Sidebar({
     if (creatingChat) return
     setCreatingChat(true)
     try {
-      const { data } = await createChat('New Chat')
+      const { data } = await createChat(t('sidebar.newChat'))
       setChats(prev => [data, ...prev])
       onNewChat(data.id)
       onSetView?.('chat')
@@ -182,6 +185,13 @@ export default function Sidebar({
     setChats(prev => prev.map(c => c.id === id ? { ...c, title } : c))
   }
 
+  const groupLabels = {
+    Today: t('sidebar.today'),
+    Yesterday: t('sidebar.yesterday'),
+    'Previous 7 days': t('sidebar.previous7days'),
+    Older: t('sidebar.older'),
+  }
+
   const groups = groupChats(chats)
 
   return (
@@ -199,7 +209,7 @@ export default function Sidebar({
           <button
             onClick={handleNewChat}
             disabled={creatingChat}
-            title="New chat"
+            title={t('sidebar.newChat')}
             className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition disabled:opacity-50"
           >
             <Plus className="w-4 h-4" />
@@ -218,7 +228,7 @@ export default function Sidebar({
           }`}
         >
           <MessageSquare className="w-4 h-4" />
-          Chats
+          {t('sidebar.chats')}
         </button>
         <button
           onClick={() => onSetView?.('documents')}
@@ -229,7 +239,7 @@ export default function Sidebar({
           }`}
         >
           <FolderOpen className="w-4 h-4" />
-          Documents
+          {t('sidebar.documents')}
         </button>
       </div>
 
@@ -239,8 +249,8 @@ export default function Sidebar({
           {chats.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
               <MessageSquare className="w-8 h-8 text-zinc-700 mb-3" />
-              <p className="text-zinc-500 text-xs">No chats yet</p>
-              <p className="text-zinc-600 text-xs mt-1">Click + to start a conversation</p>
+              <p className="text-zinc-500 text-xs">{t('sidebar.noChats')}</p>
+              <p className="text-zinc-600 text-xs mt-1">{t('sidebar.startConversation')}</p>
             </div>
           ) : (
             Object.entries(groups).map(([label, items]) => {
@@ -248,7 +258,7 @@ export default function Sidebar({
               return (
                 <div key={label} className="mb-2">
                   <p className="px-4 py-1.5 text-xs font-medium text-zinc-500 uppercase tracking-wider">
-                    {label}
+                    {groupLabels[label] || label}
                   </p>
                   {items.map(chat => (
                     <ChatRow
@@ -259,6 +269,7 @@ export default function Sidebar({
                       onDelete={handleDelete}
                       onRename={handleRename}
                       deletingId={deletingId}
+                      t={t}
                     />
                   ))}
                 </div>
@@ -272,10 +283,15 @@ export default function Sidebar({
       {currentView === 'documents' && (
         <div className="flex-1 flex items-center justify-center px-4">
           <p className="text-xs text-zinc-600 text-center leading-relaxed">
-            Switch to Chats to view conversation history
+            {t('sidebar.switchToChats')}
           </p>
         </div>
       )}
+
+      {/* Language picker */}
+      <div className="px-2 pb-1">
+        <LanguagePicker />
+      </div>
 
       {/* User section */}
       {user && (
@@ -292,7 +308,7 @@ export default function Sidebar({
             </div>
             <button
               onClick={logout}
-              title="Sign out"
+              title={t('sidebar.signOut')}
               className="w-6 h-6 flex items-center justify-center rounded text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition"
             >
               <LogOut className="w-3.5 h-3.5" />

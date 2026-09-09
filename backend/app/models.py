@@ -22,6 +22,8 @@ class ChatRequest(BaseModel):
     chat_id: Optional[str] = None
     model: Optional[str] = None
     user_api_key: Optional[str] = None
+    language: Optional[str] = None  # BCP-47 code: 'en', 'hi', 'es', 'fr', 'de', 'ar'
+    images: Optional[List[str]] = None  # base64 data URLs, e.g. "data:image/jpeg;base64,..."
 
 
 class Source(BaseModel):

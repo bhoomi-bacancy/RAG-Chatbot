@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { ChevronDown, ChevronUp, FileText, Bot } from 'lucide-react'
+import { ChevronDown, ChevronUp, FileText, Bot, RotateCcw, Copy, Check } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 
@@ -129,12 +129,20 @@ function injectSourceLinks(content, sources) {
 }
 
 /* ── MessageBubble ────────────────────────────────────────────────────────── */
-export default function MessageBubble({ message, onOpenDocuments }) {
+export default function MessageBubble({ message, onOpenDocuments, onRegenerate }) {
   const [sourcesOpen, setSourcesOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
   const { user } = useAuth()
   const isUser      = message.role === 'user'
   const isStreaming = message.streaming
   const initial = (user?.name || user?.email || 'U').charAt(0).toUpperCase()
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.content).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   /* ── User message ── */
   if (isUser) {
@@ -142,6 +150,18 @@ export default function MessageBubble({ message, onOpenDocuments }) {
       <div className="flex justify-end px-4 py-2 animate-fade-in">
         <div className="flex items-end gap-2.5 max-w-[82%]">
           <div className="flex flex-col items-end gap-2">
+            {message.imageAttachments?.length > 0 && (
+              <div className="flex flex-wrap justify-end gap-2">
+                {message.imageAttachments.map((img, i) => (
+                  <img
+                    key={i}
+                    src={img.dataUrl}
+                    alt={img.name}
+                    className="max-w-[220px] max-h-[180px] object-cover rounded-2xl border border-zinc-200 shadow-sm"
+                  />
+                ))}
+              </div>
+            )}
             {message.attachments?.length > 0 && (
               <div className="flex flex-col items-end gap-1.5">
                 {message.attachments.map((att, i) => <FileCard key={i} attachment={att} />)}
@@ -210,22 +230,44 @@ export default function MessageBubble({ message, onOpenDocuments }) {
           )}
         </div>
 
-        {/* Footer: confidence + sources toggle — only after stream ends */}
+        {/* Footer: confidence + sources toggle + actions — only after stream ends */}
         {!isStreaming && message.content && (() => {
           const cited = message.sources?.some(s => message.content.includes(s.filename))
           const showSources = cited && message.sources?.length > 0
           return (
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              {message.confidence != null && <ConfidenceTag value={message.confidence} />}
-              {showSources && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-3">
+                {message.confidence != null && <ConfidenceTag value={message.confidence} />}
+                {showSources && (
+                  <button
+                    onClick={() => setSourcesOpen(v => !v)}
+                    className="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-800 font-medium transition-colors"
+                  >
+                    {sourcesOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                    {sourcesOpen ? 'Hide' : 'View'} {message.sources.length} source{message.sources.length > 1 ? 's' : ''}
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
                 <button
-                  onClick={() => setSourcesOpen(v => !v)}
-                  className="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-800 font-medium transition-colors"
+                  onClick={handleCopy}
+                  title="Copy response"
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
                 >
-                  {sourcesOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                  {sourcesOpen ? 'Hide' : 'View'} {message.sources.length} source{message.sources.length > 1 ? 's' : ''}
+                  {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                  {copied ? 'Copied' : 'Copy'}
                 </button>
-              )}
+                {onRegenerate && (
+                  <button
+                    onClick={onRegenerate}
+                    title="Regenerate response"
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Regenerate
+                  </button>
+                )}
+              </div>
             </div>
           )
         })()}

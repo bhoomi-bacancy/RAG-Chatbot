@@ -16,6 +16,7 @@ function getProviderForModel(modelId) {
   if (modelId.startsWith('gpt-')) return 'openai'
   if (modelId.startsWith('claude-')) return 'anthropic'
   if (modelId.startsWith('gemini-')) return 'google'
+  if (modelId.startsWith('ollama/')) return 'ollama'
   return 'groq'
 }
 
@@ -264,7 +265,7 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
     } finally {
       isSendingRef.current = false
     }
-  }, [chatId, attachedFiles, conversationHistory, user, setChats, onChatCreated, updateUser, selectedModel, connectedProviderKeys])
+  }, [chatId, attachedFiles, attachedImages, conversationHistory, user, setChats, onChatCreated, updateUser, selectedModel, connectedProviderKeys])
 
   /* ── Regenerate ────────────────────────────────────────────────────────── */
   const regenerateMessage = useCallback(async (assistantMsgId, userQuery, history) => {
@@ -523,12 +524,22 @@ function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, h
     <div className="shrink-0 px-4 pb-5 pt-3 bg-white border-t border-zinc-100">
       <div className="max-w-3xl mx-auto">
         {visionWarning && (
-          <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-700">
-            <ImagePlus className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-            <span>
-              <strong>{modelLabel}</strong> doesn't support image analysis.
-              Switch to a <strong>Vision ✦</strong> model (GPT OSS 20B / 120B) to analyze images.
-            </span>
+          <div className="flex items-start gap-2.5 mb-2 px-3 py-2.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700">
+            <ImagePlus className="w-4 h-4 shrink-0 text-red-500 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-semibold">Image not supported by this model</p>
+              <p className="mt-0.5 text-red-600">
+                <strong>{modelLabel}</strong> cannot analyze images. Remove the image or switch to a{' '}
+                <button
+                  type="button"
+                  onClick={onOpenModelPicker}
+                  className="underline font-semibold hover:text-red-800 transition"
+                >
+                  Vision ✦ model
+                </button>{' '}
+                (GPT OSS 20B / 120B) to continue.
+              </p>
+            </div>
           </div>
         )}
         <div className={`relative bg-white border rounded-2xl shadow-sm transition-all ${streaming ? 'border-zinc-200' : 'border-zinc-200 hover:border-zinc-300 focus-within:border-zinc-400 focus-within:shadow-md'}`}>
@@ -559,7 +570,7 @@ function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, h
             ref={textareaRef}
             value={input}
             onChange={handleTextareaChange}
-            onKeyDown={handleKeyDown}
+            onKeyDown={e => { if (visionWarning) return; handleKeyDown(e) }}
             placeholder={t('chat.placeholder')}
             disabled={streaming}
             rows={1}
@@ -604,7 +615,7 @@ function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, h
 
             <button
               onClick={() => sendMessage(input)}
-              disabled={(!input.trim() && attachedFiles.length === 0) || streaming}
+              disabled={(!input.trim() && attachedFiles.length === 0 && attachedImages.length === 0) || streaming || visionWarning}
               className="w-8 h-8 rounded-xl bg-zinc-900 hover:bg-zinc-700 disabled:bg-zinc-200 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors"
             >
               {streaming

@@ -32,7 +32,7 @@ async def chat(request: ChatRequest, current_user: dict = Depends(get_current_us
             user_id=uid,
         )
         history = [{"role": m.role, "content": m.content} for m in request.conversation_history]
-        answer, confidence = generate_response(request.message, chunks, history, model=request.model, user_id=uid)
+        answer, confidence = generate_response(request.message, chunks, history, model=request.model, user_id=uid, language=request.language, images=request.images)
 
         sources = [
             Source(
@@ -94,6 +94,8 @@ async def chat_stream(request: ChatRequest, current_user: dict = Depends(get_cur
                     chat_id=request.chat_id,
                     model=request.model,
                     user_api_key=request.user_api_key,
+                    language=request.language,
+                    images=request.images,
                 ):
                     if '"type": "done"' in chunk:
                         sent_done = True

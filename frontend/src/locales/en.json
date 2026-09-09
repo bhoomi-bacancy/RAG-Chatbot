@@ -1,0 +1,80 @@
+{
+  "auth": {
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "subtitle_login": "Sign in to continue your conversations",
+    "subtitle_register": "Create your account to get started",
+    "subtitle_forgot": "Enter your email to receive a reset link",
+    "fullName": "Full name",
+    "emailAddress": "Email address",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "continue": "Continue",
+    "createAccount": "Create account",
+    "sendResetLink": "Send reset link",
+    "signingIn": "Signing in…",
+    "creatingAccount": "Creating account…",
+    "sendingReset": "Sending reset link…",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?",
+    "terms": "By continuing, you agree to our",
+    "termsLink": "Terms of Service",
+    "and": "and",
+    "privacyLink": "Privacy Policy",
+    "checkEmail": "Check your email",
+    "resetSent": "We've sent a password reset link to",
+    "resetExpiry": "It expires in 1 hour.",
+    "noEmail": "Didn't receive it? Check your spam folder.",
+    "backToSignIn": "Back to sign in",
+    "error_generic": "Something went wrong. Please try again."
+  },
+  "sidebar": {
+    "newChat": "New chat",
+    "chats": "Chats",
+    "documents": "Documents",
+    "noChats": "No chats yet",
+    "startConversation": "Click + to start a conversation",
+    "switchToChats": "Switch to Chats to view conversation history",
+    "signOut": "Sign out",
+    "rename": "Rename",
+    "delete": "Delete",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "previous7days": "Previous 7 days",
+    "older": "Older"
+  },
+  "chat": {
+    "greeting": "How can I help you?",
+    "greetingSubtitle": "Start a conversation or try a suggestion below.",
+    "placeholder": "Message Inkira…",
+    "generating": "Generating…",
+    "disclaimer": "Inkira can make mistakes. Verify important information.",
+    "noMessages": "No messages yet — send one to get started.",
+    "error_generic": "Something went wrong. Please try again.",
+    "attachTitle": "Attach PDF, DOCX, or TXT — max 3 files, 4 MB each",
+    "selectModel": "Select AI model",
+    "suggestions": {
+      "summarize": "Summarize the uploaded document",
+      "findings": "What are the key findings?",
+      "explain": "Explain the main concepts",
+      "list": "List the important points"
+    }
+  },
+  "resetPassword": {
+    "title": "Set New Password",
+    "subtitle": "Choose a new password for your account.",
+    "newPassword": "New password (min 8 chars)",
+    "confirmPassword": "Confirm new password",
+    "updating": "Updating…",
+    "update": "Update Password",
+    "successTitle": "Password updated!",
+    "successSubtitle": "You can now sign in with your new password.",
+    "errorLength": "Password must be at least 8 characters.",
+    "errorMatch": "Passwords do not match.",
+    "error_generic": "Something went wrong. Please try again."
+  },
+  "toast": {
+    "connected": "connected successfully!",
+    "connectError": "Could not connect {{provider}}. Please try again."
+  }
+}

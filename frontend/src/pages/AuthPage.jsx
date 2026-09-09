@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Bot, Mail, Lock, User, Eye, EyeOff, Loader2, CheckCircle, ArrowLeft } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { login as apiLogin, register as apiRegister, forgotPassword } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function AuthPage() {
   const { login } = useAuth()
+  const { t } = useTranslation()
   // mode: 'login' | 'register' | 'forgot' | 'forgot-sent'
   const [mode, setMode] = useState('login')
   const [form, setForm] = useState({ email: '', name: '', password: '' })
@@ -40,7 +42,7 @@ export default function AuthPage() {
       login(data.access_token, data.user)
     } catch (err) {
       setError(
-        err.response?.data?.detail || 'Something went wrong. Please try again.'
+        err.response?.data?.detail || t('auth.error_generic')
       )
     } finally {
       setLoading(false)
@@ -56,20 +58,20 @@ export default function AuthPage() {
             <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <CheckCircle className="w-7 h-7 text-green-600" />
             </div>
-            <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight">Check your email</h1>
+            <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight">{t('auth.checkEmail')}</h1>
             <p className="text-sm text-zinc-500 mt-2 leading-relaxed">
-              We've sent a password reset link to<br />
+              {t('auth.resetSent')}<br />
               <span className="font-medium text-zinc-700">{form.email}</span>.<br />
-              It expires in 1 hour.
+              {t('auth.resetExpiry')}
             </p>
           </div>
-          <p className="text-xs text-zinc-400 mb-4">Didn't receive it? Check your spam folder.</p>
+          <p className="text-xs text-zinc-400 mb-4">{t('auth.noEmail')}</p>
           <button
             onClick={() => switchMode('login')}
             className="text-sm font-medium text-orange-500 hover:text-orange-600 transition flex items-center gap-1.5 mx-auto"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Back to sign in
+            {t('auth.backToSignIn')}
           </button>
         </div>
       </div>
@@ -86,9 +88,9 @@ export default function AuthPage() {
           </div>
           <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight">Inkira</h1>
           <p className="text-sm text-zinc-500 mt-1">
-            {mode === 'login' && 'Sign in to continue your conversations'}
-            {mode === 'register' && 'Create your account to get started'}
-            {mode === 'forgot' && 'Enter your email to receive a reset link'}
+            {mode === 'login' && t('auth.subtitle_login')}
+            {mode === 'register' && t('auth.subtitle_register')}
+            {mode === 'forgot' && t('auth.subtitle_forgot')}
           </p>
         </div>
 
@@ -100,7 +102,7 @@ export default function AuthPage() {
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
               <input
                 type="text"
-                placeholder="Full name"
+                placeholder={t('auth.fullName')}
                 value={form.name}
                 onChange={set('name')}
                 required
@@ -114,7 +116,7 @@ export default function AuthPage() {
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
             <input
               type="email"
-              placeholder="Email address"
+              placeholder={t('auth.emailAddress')}
               value={form.email}
               onChange={set('email')}
               required
@@ -128,7 +130,7 @@ export default function AuthPage() {
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
               <input
                 type={showPass ? 'text' : 'password'}
-                placeholder="Password"
+                placeholder={t('auth.password')}
                 value={form.password}
                 onChange={set('password')}
                 required
@@ -153,7 +155,7 @@ export default function AuthPage() {
                 onClick={() => switchMode('forgot')}
                 className="text-xs text-zinc-400 hover:text-orange-500 transition"
               >
-                Forgot password?
+                {t('auth.forgotPassword')}
               </button>
             </div>
           )}
@@ -174,15 +176,15 @@ export default function AuthPage() {
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                {mode === 'login' && 'Signing in…'}
-                {mode === 'register' && 'Creating account…'}
-                {mode === 'forgot' && 'Sending reset link…'}
+                {mode === 'login' && t('auth.signingIn')}
+                {mode === 'register' && t('auth.creatingAccount')}
+                {mode === 'forgot' && t('auth.sendingReset')}
               </>
             ) : (
               <>
-                {mode === 'login' && 'Continue'}
-                {mode === 'register' && 'Create account'}
-                {mode === 'forgot' && 'Send reset link'}
+                {mode === 'login' && t('auth.continue')}
+                {mode === 'register' && t('auth.createAccount')}
+                {mode === 'forgot' && t('auth.sendResetLink')}
               </>
             )}
           </button>
@@ -195,7 +197,7 @@ export default function AuthPage() {
               className="w-full text-sm text-zinc-500 hover:text-zinc-700 transition flex items-center justify-center gap-1.5"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              Back to sign in
+              {t('auth.backToSignIn')}
             </button>
           )}
         </form>
@@ -205,22 +207,22 @@ export default function AuthPage() {
           <p className="text-center text-sm text-zinc-500 mt-6">
             {mode === 'login' ? (
               <>
-                Don&apos;t have an account?{' '}
+                {t('auth.noAccount')}{' '}
                 <button
                   onClick={() => switchMode('register')}
                   className="font-semibold text-zinc-900 hover:text-orange-500 transition"
                 >
-                  Sign up
+                  {t('auth.signUp')}
                 </button>
               </>
             ) : (
               <>
-                Already have an account?{' '}
+                {t('auth.haveAccount')}{' '}
                 <button
                   onClick={() => switchMode('login')}
                   className="font-semibold text-zinc-900 hover:text-orange-500 transition"
                 >
-                  Sign in
+                  {t('auth.signIn')}
                 </button>
               </>
             )}
@@ -230,10 +232,10 @@ export default function AuthPage() {
         {/* Legal */}
         {(mode === 'login' || mode === 'register') && (
           <p className="text-center text-xs text-zinc-400 mt-6 leading-relaxed">
-            By continuing, you agree to our{' '}
-            <span className="underline cursor-pointer hover:text-zinc-600">Terms of Service</span>{' '}
-            and{' '}
-            <span className="underline cursor-pointer hover:text-zinc-600">Privacy Policy</span>.
+            {t('auth.terms')}{' '}
+            <span className="underline cursor-pointer hover:text-zinc-600">{t('auth.termsLink')}</span>{' '}
+            {t('auth.and')}{' '}
+            <span className="underline cursor-pointer hover:text-zinc-600">{t('auth.privacyLink')}</span>.
           </p>
         )}
       </div>

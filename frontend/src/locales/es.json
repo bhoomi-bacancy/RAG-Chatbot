@@ -1,0 +1,80 @@
+{
+  "auth": {
+    "signIn": "Iniciar sesión",
+    "signUp": "Registrarse",
+    "subtitle_login": "Inicia sesión para continuar tus conversaciones",
+    "subtitle_register": "Crea tu cuenta para comenzar",
+    "subtitle_forgot": "Ingresa tu correo para recibir un enlace de restablecimiento",
+    "fullName": "Nombre completo",
+    "emailAddress": "Correo electrónico",
+    "password": "Contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "continue": "Continuar",
+    "createAccount": "Crear cuenta",
+    "sendResetLink": "Enviar enlace",
+    "signingIn": "Iniciando sesión…",
+    "creatingAccount": "Creando cuenta…",
+    "sendingReset": "Enviando enlace…",
+    "noAccount": "¿No tienes cuenta?",
+    "haveAccount": "¿Ya tienes cuenta?",
+    "terms": "Al continuar, aceptas nuestros",
+    "termsLink": "Términos de Servicio",
+    "and": "y",
+    "privacyLink": "Política de Privacidad",
+    "checkEmail": "Revisa tu correo",
+    "resetSent": "Hemos enviado un enlace de restablecimiento a",
+    "resetExpiry": "Expira en 1 hora.",
+    "noEmail": "¿No lo recibiste? Revisa tu carpeta de spam.",
+    "backToSignIn": "Volver a iniciar sesión",
+    "error_generic": "Algo salió mal. Por favor intenta de nuevo."
+  },
+  "sidebar": {
+    "newChat": "Nueva conversación",
+    "chats": "Conversaciones",
+    "documents": "Documentos",
+    "noChats": "Sin conversaciones aún",
+    "startConversation": "Haz clic en + para comenzar",
+    "switchToChats": "Cambia a Conversaciones para ver el historial",
+    "signOut": "Cerrar sesión",
+    "rename": "Renombrar",
+    "delete": "Eliminar",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "previous7days": "Últimos 7 días",
+    "older": "Más antiguo"
+  },
+  "chat": {
+    "greeting": "¿En qué puedo ayudarte?",
+    "greetingSubtitle": "Inicia una conversación o prueba una sugerencia.",
+    "placeholder": "Mensaje a Inkira…",
+    "generating": "Generando…",
+    "disclaimer": "Inkira puede cometer errores. Verifica la información importante.",
+    "noMessages": "Sin mensajes aún — envía uno para comenzar.",
+    "error_generic": "Algo salió mal. Por favor intenta de nuevo.",
+    "attachTitle": "Adjunta PDF, DOCX o TXT — máx 3 archivos, 4 MB cada uno",
+    "selectModel": "Seleccionar modelo IA",
+    "suggestions": {
+      "summarize": "Resumir el documento subido",
+      "findings": "¿Cuáles son los hallazgos clave?",
+      "explain": "Explicar los conceptos principales",
+      "list": "Listar los puntos importantes"
+    }
+  },
+  "resetPassword": {
+    "title": "Establecer nueva contraseña",
+    "subtitle": "Elige una nueva contraseña para tu cuenta.",
+    "newPassword": "Nueva contraseña (mín. 8 caracteres)",
+    "confirmPassword": "Confirmar contraseña",
+    "updating": "Actualizando…",
+    "update": "Actualizar contraseña",
+    "successTitle": "¡Contraseña actualizada!",
+    "successSubtitle": "Ya puedes iniciar sesión con tu nueva contraseña.",
+    "errorLength": "La contraseña debe tener al menos 8 caracteres.",
+    "errorMatch": "Las contraseñas no coinciden.",
+    "error_generic": "Algo salió mal. Por favor intenta de nuevo."
+  },
+  "toast": {
+    "connected": "¡conectado exitosamente!",
+    "connectError": "No se pudo conectar {{provider}}. Por favor intenta de nuevo."
+  }
+}

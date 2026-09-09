@@ -1,5 +1,5 @@
 from typing import List, Optional
-from app.database import search_chunks_safe, get_fallback_chunks
+from app.database import search_chunks_safe
 from app.config import settings
 
 
@@ -18,10 +18,9 @@ def retrieve_chunks(
         top_k=top_k,
     )
 
-    # FTS found nothing — fall back to returning chunks directly so the LLM
-    # still has document context even when keywords don't match the question.
-    if not results:
-        results = get_fallback_chunks(user_id, document_ids, top_k)
+    # No fallback — if FTS finds nothing the question doesn't match the documents.
+    # Return empty so the LLM answers from general knowledge without injecting
+    # irrelevant document chunks that would anchor the response to the wrong topic.
 
     return [
         {

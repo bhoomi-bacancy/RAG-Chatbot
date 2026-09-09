@@ -1,0 +1,80 @@
+{
+  "auth": {
+    "signIn": "Se connecter",
+    "signUp": "S'inscrire",
+    "subtitle_login": "Connectez-vous pour continuer vos conversations",
+    "subtitle_register": "Créez votre compte pour commencer",
+    "subtitle_forgot": "Entrez votre email pour recevoir un lien de réinitialisation",
+    "fullName": "Nom complet",
+    "emailAddress": "Adresse email",
+    "password": "Mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "continue": "Continuer",
+    "createAccount": "Créer un compte",
+    "sendResetLink": "Envoyer le lien",
+    "signingIn": "Connexion en cours…",
+    "creatingAccount": "Création du compte…",
+    "sendingReset": "Envoi du lien…",
+    "noAccount": "Pas encore de compte ?",
+    "haveAccount": "Vous avez déjà un compte ?",
+    "terms": "En continuant, vous acceptez nos",
+    "termsLink": "Conditions d'utilisation",
+    "and": "et",
+    "privacyLink": "Politique de confidentialité",
+    "checkEmail": "Vérifiez votre email",
+    "resetSent": "Nous avons envoyé un lien de réinitialisation à",
+    "resetExpiry": "Il expire dans 1 heure.",
+    "noEmail": "Vous ne l'avez pas reçu ? Vérifiez vos spams.",
+    "backToSignIn": "Retour à la connexion",
+    "error_generic": "Une erreur s'est produite. Veuillez réessayer."
+  },
+  "sidebar": {
+    "newChat": "Nouvelle conversation",
+    "chats": "Conversations",
+    "documents": "Documents",
+    "noChats": "Aucune conversation",
+    "startConversation": "Cliquez sur + pour commencer",
+    "switchToChats": "Passez aux Conversations pour voir l'historique",
+    "signOut": "Se déconnecter",
+    "rename": "Renommer",
+    "delete": "Supprimer",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "previous7days": "7 derniers jours",
+    "older": "Plus ancien"
+  },
+  "chat": {
+    "greeting": "Comment puis-je vous aider ?",
+    "greetingSubtitle": "Démarrez une conversation ou essayez une suggestion.",
+    "placeholder": "Message à Inkira…",
+    "generating": "Génération en cours…",
+    "disclaimer": "Inkira peut faire des erreurs. Vérifiez les informations importantes.",
+    "noMessages": "Aucun message — envoyez-en un pour commencer.",
+    "error_generic": "Une erreur s'est produite. Veuillez réessayer.",
+    "attachTitle": "Joindre un PDF, DOCX ou TXT — max 3 fichiers, 4 Mo chacun",
+    "selectModel": "Choisir un modèle IA",
+    "suggestions": {
+      "summarize": "Résumer le document téléchargé",
+      "findings": "Quelles sont les conclusions clés ?",
+      "explain": "Expliquer les concepts principaux",
+      "list": "Lister les points importants"
+    }
+  },
+  "resetPassword": {
+    "title": "Définir un nouveau mot de passe",
+    "subtitle": "Choisissez un nouveau mot de passe pour votre compte.",
+    "newPassword": "Nouveau mot de passe (min. 8 caractères)",
+    "confirmPassword": "Confirmer le mot de passe",
+    "updating": "Mise à jour…",
+    "update": "Mettre à jour",
+    "successTitle": "Mot de passe mis à jour !",
+    "successSubtitle": "Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.",
+    "errorLength": "Le mot de passe doit contenir au moins 8 caractères.",
+    "errorMatch": "Les mots de passe ne correspondent pas.",
+    "error_generic": "Une erreur s'est produite. Veuillez réessayer."
+  },
+  "toast": {
+    "connected": "connecté avec succès !",
+    "connectError": "Impossible de connecter {{provider}}. Veuillez réessayer."
+  }
+}

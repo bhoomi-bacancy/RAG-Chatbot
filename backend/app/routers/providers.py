@@ -14,7 +14,7 @@ from app.stores.key_store import save_user_key, get_all_keys, list_key_providers
 
 router = APIRouter()
 
-VALID_PROVIDERS = {"openai", "anthropic", "google"}
+VALID_PROVIDERS = {"openai", "anthropic", "google", "ollama"}
 
 GOOGLE_AUTH_URL      = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL     = "https://oauth2.googleapis.com/token"
@@ -29,7 +29,7 @@ async def get_configured_providers():
     """Returns which providers have valid platform API keys. No auth required."""
     from app.services.generator import _platform_key
     available = ["groq"]
-    for p in ("openai", "anthropic", "google"):
+    for p in ("openai", "anthropic", "google", "ollama"):
         if _platform_key(p):
             available.append(p)
     return {"configured": available}

@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     google_api_key: str = ""
 
+    # Ollama (OpenAI-compatible local or hosted)
+    ollama_base_url: str = "http://localhost:11434/v1"
+    ollama_api_key: str = ""
+
     # Google OAuth credentials (for "Sign in with Google")
     google_client_id: str = ""
     google_client_secret: str = ""

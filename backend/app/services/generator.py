@@ -51,6 +51,7 @@ def get_provider(model: str) -> str:
     if model.startswith("gpt-"):      return "openai"
     if model.startswith("claude-"):   return "anthropic"
     if model.startswith("gemini-"):   return "google"
+    if model.startswith("ollama/"):   return "ollama"
     return "groq"
 
 
@@ -59,8 +60,8 @@ def _supports_vision(model: str, provider: str) -> bool:
     if provider == "anthropic": return True   # All Claude 3+ support vision
     if provider == "google":    return True   # All Gemini models support vision
     if provider == "openai":    return True   # GPT-4V and above support vision
-    # Groq-hosted: only gpt-oss models accept image_url content
-    return model.startswith("openai/gpt-oss")
+    # Groq-hosted GPT OSS models do NOT support multimodal content (text-only API)
+    return False
 
 
 _PLACEHOLDER_MARKERS = ("your-", "placeholder", "example", "changeme", "insert", "-here", "xxxxxxx")
@@ -78,6 +79,7 @@ def _platform_key(provider: str) -> Optional[str]:
     if provider == "openai":    return _valid(settings.openai_api_key)
     if provider == "anthropic": return _valid(settings.anthropic_api_key)
     if provider == "google":    return _valid(settings.google_api_key)
+    if provider == "ollama":    return _valid(settings.ollama_api_key) or "ollama"
     return None
 
 
@@ -215,6 +217,19 @@ async def _stream_tokens_anthropic(messages: List[dict], model: str, api_key: st
             yield text
 
 
+async def _stream_tokens_ollama(messages: List[dict], model: str, api_key: str) -> AsyncIterator[str]:
+    from openai import AsyncOpenAI
+    model_name = model.removeprefix("ollama/")
+    client = AsyncOpenAI(base_url=settings.ollama_base_url, api_key=api_key)
+    stream = await client.chat.completions.create(
+        model=model_name, max_tokens=2048, messages=messages, stream=True
+    )
+    async for chunk in stream:
+        delta = chunk.choices[0].delta.content
+        if delta:
+            yield delta
+
+
 async def _stream_tokens_google(messages: List[dict], model: str, api_key: str) -> AsyncIterator[str]:
     """Direct httpx call to Gemini REST API — avoids google-generativeai SDK hanging in serverless."""
     import httpx, json as _json
@@ -312,6 +327,13 @@ def generate_response(
         from openai import OpenAI
         client = OpenAI(api_key=api_key)
         resp = client.chat.completions.create(model=model, max_tokens=2048, messages=messages)
+        return resp.choices[0].message.content, confidence
+
+    if provider == "ollama":
+        from openai import OpenAI
+        model_name = model.removeprefix("ollama/")
+        client = OpenAI(base_url=settings.ollama_base_url, api_key=api_key)
+        resp = client.chat.completions.create(model=model_name, max_tokens=2048, messages=messages)
         return resp.choices[0].message.content, confidence
 
     if provider == "anthropic":
@@ -434,6 +456,8 @@ async def stream_response(
             token_stream = _stream_tokens_groq(messages, model)
         elif provider == "openai":
             token_stream = _stream_tokens_openai(messages, model, api_key)
+        elif provider == "ollama":
+            token_stream = _stream_tokens_ollama(messages, model, api_key)
         elif provider == "anthropic":
             token_stream = _stream_tokens_anthropic(messages, model, api_key)
         elif provider == "google":

@@ -97,7 +97,7 @@ export const deleteProviderKey  = (provider) =>
 // ── Streaming chat ─────────────────────────────────────────────────────────────
 
 export async function streamChat(
-  { message, conversationHistory, documentIds, chatId, model, userApiKey },
+  { message, conversationHistory, documentIds, chatId, model, userApiKey, language, images },
   callbacks
 ) {
   const { onSources, onToken, onDone, onError } = callbacks
@@ -119,6 +119,8 @@ export async function streamChat(
         chat_id: chatId || null,
         model: model || null,
         user_api_key: userApiKey || null,
+        language: language || null,
+        images: images?.length ? images : null,
       }),
     })
   } catch (networkErr) {

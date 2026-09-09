@@ -12,8 +12,8 @@ export const PROVIDERS = [
     models: [
       { id: 'groq/compound-mini',    name: 'Compound Mini',   badge: 'Default',   badgeCls: 'bg-orange-100 text-orange-700', Icon: Zap,   desc: 'Fast everyday queries',          vision: false },
       { id: 'groq/compound',         name: 'Compound',        badge: 'Balanced',  badgeCls: 'bg-blue-100 text-blue-700',    Icon: Brain, desc: 'Better reasoning + tool use',     vision: false },
-      { id: 'openai/gpt-oss-20b',    name: 'GPT OSS 20B',    badge: 'Vision ✦',  badgeCls: 'bg-green-100 text-green-700',  Icon: Zap,   desc: 'OpenAI OSS — vision + ultra-fast', vision: true },
-      { id: 'openai/gpt-oss-120b',   name: 'GPT OSS 120B',   badge: 'Vision ✦',  badgeCls: 'bg-indigo-100 text-indigo-700',Icon: Brain, desc: 'OpenAI OSS — vision + most capable',vision: true },
+      { id: 'openai/gpt-oss-20b',    name: 'GPT OSS 20B',    badge: 'Fast',      badgeCls: 'bg-green-100 text-green-700',  Icon: Zap,   desc: 'OpenAI OSS — ultra-fast',          vision: false },
+      { id: 'openai/gpt-oss-120b',   name: 'GPT OSS 120B',   badge: 'Powerful',  badgeCls: 'bg-indigo-100 text-indigo-700',Icon: Brain, desc: 'OpenAI OSS — most capable',         vision: false },
       { id: 'qwen/qwen3.6-27b',      name: 'Qwen 3 27B',     badge: 'Multilingual', badgeCls: 'bg-teal-100 text-teal-700', Icon: Cpu,   desc: 'Great multilingual support',      vision: false },
     ],
   },
@@ -44,6 +44,22 @@ export const PROVIDERS = [
       { id: 'claude-opus-4-8',        name: 'Claude Opus 4',   badge: 'Most Capable', badgeCls: 'bg-amber-100 text-amber-700',  Icon: Brain, desc: 'Best for complex tasks',   vision: true },
       { id: 'claude-sonnet-4-6',      name: 'Claude Sonnet 4', badge: 'Balanced',     badgeCls: 'bg-orange-100 text-orange-700',Icon: Brain, desc: 'Smart and efficient',      vision: true },
       { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', badge: 'Fast',   badgeCls: 'bg-yellow-100 text-yellow-700', Icon: Zap,   desc: 'Quick and lightweight',  vision: true },
+    ],
+  },
+  {
+    id: 'ollama',
+    name: 'Ollama',
+    tagline: 'Local & hosted open-source models',
+    accentCls: 'text-violet-700 bg-violet-50 border-violet-200',
+    dotCls: 'bg-violet-500',
+    iconBg: 'bg-violet-600',
+    iconLabel: 'O',
+    keyUrl: 'https://ollama.com',
+    models: [
+      { id: 'ollama/llama3.2',   name: 'Llama 3.2',    badge: 'Fast',      badgeCls: 'bg-violet-100 text-violet-700', Icon: Zap,   desc: 'Meta Llama 3.2 — lightweight & fast', vision: false },
+      { id: 'ollama/llama3.1',   name: 'Llama 3.1 8B', badge: 'Balanced',  badgeCls: 'bg-purple-100 text-purple-700', Icon: Brain, desc: 'Meta Llama 3.1 — great reasoning',      vision: false },
+      { id: 'ollama/mistral',    name: 'Mistral 7B',   badge: 'Efficient', badgeCls: 'bg-fuchsia-100 text-fuchsia-700', Icon: Cpu, desc: 'Mistral AI — efficient & capable',    vision: false },
+      { id: 'ollama/qwen2.5',    name: 'Qwen 2.5 7B',  badge: 'Multilingual', badgeCls: 'bg-pink-100 text-pink-700',  Icon: Cpu,   desc: 'Alibaba Qwen — multilingual support', vision: false },
     ],
   },
   {

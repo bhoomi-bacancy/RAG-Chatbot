@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X, Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import AuthPage from './pages/AuthPage'
 import Sidebar from './components/Sidebar'
@@ -9,6 +10,7 @@ import { resetPassword } from './api/client'
 
 /* ── Reset Password Modal ─────────────────────────────────────────────────── */
 function ResetPasswordModal({ token, onClose }) {
+  const { t } = useTranslation()
   const [passwords, setPasswords] = useState({ password: '', confirm: '' })
   const [showPass, setShowPass]   = useState(false)
   const [loading,  setLoading]    = useState(false)
@@ -18,11 +20,11 @@ function ResetPasswordModal({ token, onClose }) {
   const handleSubmit = async e => {
     e.preventDefault()
     if (passwords.password.length < 8) {
-      setError('Password must be at least 8 characters.')
+      setError(t('resetPassword.errorLength'))
       return
     }
     if (passwords.password !== passwords.confirm) {
-      setError('Passwords do not match.')
+      setError(t('resetPassword.errorMatch'))
       return
     }
     setLoading(true)
@@ -34,7 +36,7 @@ function ResetPasswordModal({ token, onClose }) {
       window.history.replaceState({}, document.title, window.location.pathname)
       setTimeout(onClose, 2500)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Something went wrong. Please try again.')
+      setError(err.response?.data?.detail || t('resetPassword.error_generic'))
     } finally {
       setLoading(false)
     }
@@ -60,19 +62,19 @@ function ResetPasswordModal({ token, onClose }) {
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3">
               <CheckCircle className="w-6 h-6 text-green-600" />
             </div>
-            <h2 className="text-lg font-semibold text-zinc-900">Password updated!</h2>
-            <p className="text-sm text-zinc-500 mt-1">You can now sign in with your new password.</p>
+            <h2 className="text-lg font-semibold text-zinc-900">{t('resetPassword.successTitle')}</h2>
+            <p className="text-sm text-zinc-500 mt-1">{t('resetPassword.successSubtitle')}</p>
           </div>
         ) : (
           <>
-            <h2 className="text-lg font-semibold text-zinc-900 mb-1">Set New Password</h2>
-            <p className="text-sm text-zinc-500 mb-5">Choose a new password for your account.</p>
+            <h2 className="text-lg font-semibold text-zinc-900 mb-1">{t('resetPassword.title')}</h2>
+            <p className="text-sm text-zinc-500 mb-5">{t('resetPassword.subtitle')}</p>
 
             <form onSubmit={handleSubmit} className="space-y-3">
               <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'}
-                  placeholder="New password (min 8 chars)"
+                  placeholder={t('resetPassword.newPassword')}
                   value={passwords.password}
                   onChange={e => setPasswords(p => ({ ...p, password: e.target.value }))}
                   required
@@ -90,7 +92,7 @@ function ResetPasswordModal({ token, onClose }) {
 
               <input
                 type={showPass ? 'text' : 'password'}
-                placeholder="Confirm new password"
+                placeholder={t('resetPassword.confirmPassword')}
                 value={passwords.confirm}
                 onChange={e => setPasswords(p => ({ ...p, confirm: e.target.value }))}
                 required
@@ -109,9 +111,9 @@ function ResetPasswordModal({ token, onClose }) {
                 className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white py-3 rounded-xl font-medium text-sm transition flex items-center justify-center gap-2"
               >
                 {loading ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Updating…</>
+                  <><Loader2 className="w-4 h-4 animate-spin" /> {t('resetPassword.updating')}</>
                 ) : (
-                  'Update Password'
+                  t('resetPassword.update')
                 )}
               </button>
             </form>
@@ -125,6 +127,7 @@ function ResetPasswordModal({ token, onClose }) {
 /* ── AppShell ─────────────────────────────────────────────────────────────── */
 function AppShell() {
   const { user, loading } = useAuth()
+  const { t } = useTranslation()
   const [currentChatId, setCurrentChatId] = useState(null)
   const [renderKey,     setRenderKey]     = useState('new')
   const [chats,         setChats]         = useState([])
@@ -210,7 +213,7 @@ function AppShell() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </span>
-          {oauthConnected.charAt(0).toUpperCase() + oauthConnected.slice(1)} connected successfully!
+          {oauthConnected.charAt(0).toUpperCase() + oauthConnected.slice(1)} {t('toast.connected')}
         </div>
       )}
 
@@ -218,7 +221,7 @@ function AppShell() {
       {oauthError && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 bg-red-600 text-white text-sm font-medium px-4 py-3 rounded-2xl shadow-xl animate-fade-in">
           <span>⚠️</span>
-          Could not connect {oauthError}. Please try again.
+          {t('toast.connectError', { provider: oauthError })}
         </div>
       )}
     </div>
