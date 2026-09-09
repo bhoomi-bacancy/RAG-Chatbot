@@ -154,7 +154,7 @@ export default function ModelPickerModal({
                     <span className="text-[10px] text-zinc-400">{provider.tagline}</span>
                   </div>
 
-                  {!provider.free && (
+                  {!provider.free && !isPlatformReady && (
                     isUserConnected ? (
                       <button
                         onClick={e => handleDisconnect(e, provider.id)}
@@ -171,6 +171,11 @@ export default function ModelPickerModal({
                         Connect
                       </button>
                     )
+                  )}
+                  {!provider.free && isPlatformReady && !isUserConnected && (
+                    <span className="text-[10px] font-medium text-violet-600 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-md">
+                      Platform
+                    </span>
                   )}
                 </div>
 
