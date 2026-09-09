@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bot, Plus, Trash2, MessageSquare, LogOut, Pencil, Check, X, FolderOpen } from 'lucide-react'
+import { Bot, Plus, Trash2, MessageSquare, LogOut, Pencil, Check, X, FolderOpen, Wand2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { listChats, createChat, deleteChat, renameChat } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
@@ -240,6 +240,17 @@ export default function Sidebar({
         >
           <FolderOpen className="w-4 h-4" />
           {t('sidebar.documents')}
+        </button>
+        <button
+          onClick={() => onSetView?.('image-edit')}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition w-full text-left ${
+            currentView === 'image-edit'
+              ? 'bg-zinc-800 text-white'
+              : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+          }`}
+        >
+          <Wand2 className="w-4 h-4" />
+          Image Edit
         </button>
       </div>
 

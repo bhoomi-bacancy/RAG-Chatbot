@@ -75,6 +75,11 @@ export const listDocuments = () => api.get('/documents/')
 
 export const deleteDocument = id => api.delete(`/documents/${id}`)
 
+// ── Image Edit ────────────────────────────────────────────────────────────────
+
+export const editImage = ({ image_url, prompt, lora_scale }) =>
+  api.post('/image/edit', { image_url, prompt, lora_scale })
+
 // ── Providers ─────────────────────────────────────────────────────────────────
 
 export const getConfiguredProviders = () => api.get('/providers/configured')

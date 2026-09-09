@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434/v1"
     ollama_api_key: str = ""
 
+    # fal.ai — image editing via Qwen LoRA
+    fal_api_key: str = ""
+
     # Google OAuth credentials (for "Sign in with Google")
     google_client_id: str = ""
     google_client_secret: str = ""
