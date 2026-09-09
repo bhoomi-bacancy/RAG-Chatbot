@@ -72,9 +72,9 @@ export const PROVIDERS = [
     iconLabel: 'G',
     keyUrl: 'https://aistudio.google.com/apikey',
     models: [
-      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', badge: 'Latest',       badgeCls: 'bg-blue-100 text-blue-700',   Icon: Zap,  desc: 'Fastest Gemini model',    vision: true },
-      { id: 'gemini-1.5-pro',   name: 'Gemini 1.5 Pro',   badge: 'Long Context', badgeCls: 'bg-indigo-100 text-indigo-700',Icon: Brain, desc: '1M token context window', vision: true },
-      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', badge: 'Efficient',    badgeCls: 'bg-sky-100 text-sky-700',    Icon: Cpu,  desc: 'Fast multimodal model',  vision: true },
+      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', badge: 'Latest',       badgeCls: 'bg-blue-100 text-blue-700',    Icon: Zap,   desc: 'Fastest current Gemini model',  vision: true },
+      { id: 'gemini-2.5-pro',   name: 'Gemini 2.5 Pro',   badge: 'Most Capable', badgeCls: 'bg-indigo-100 text-indigo-700',Icon: Brain, desc: 'Best reasoning + long context',  vision: true },
+      { id: 'gemini-1.5-pro',   name: 'Gemini 1.5 Pro',   badge: 'Long Context', badgeCls: 'bg-sky-100 text-sky-700',      Icon: Brain, desc: '1M token context window',        vision: true },
     ],
   },
 ]
