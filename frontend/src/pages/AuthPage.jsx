@@ -23,27 +23,51 @@ export default function AuthPage() {
     setForm(prev => ({ ...prev, name: '', password: '' }))
   }
 
+  const validate = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const email = form.email.trim()
+    const name  = form.name.trim()
+
+    if (!email) return 'Email address is required.'
+    if (!emailRegex.test(email)) return 'Please enter a valid email address (e.g. user@example.com).'
+
+    if (mode === 'register') {
+      if (!name) return 'Full name is required.'
+      if (name.length < 2) return 'Name must be at least 2 characters.'
+      if (!form.password) return 'Password is required.'
+      if (form.password.length < 8) return 'Password must be at least 8 characters.'
+    }
+
+    if (mode === 'login') {
+      if (!form.password) return 'Password is required.'
+    }
+
+    return null
+  }
+
   const handleSubmit = async e => {
     e.preventDefault()
+
+    const validationError = validate()
+    if (validationError) { setError(validationError); return }
+
     setLoading(true)
     setError('')
 
     try {
       if (mode === 'forgot') {
-        await forgotPassword(form.email)
+        await forgotPassword(form.email.trim())
         setMode('forgot-sent')
         return
       }
 
       const { data } =
         mode === 'login'
-          ? await apiLogin(form.email, form.password)
-          : await apiRegister(form.email, form.name, form.password)
+          ? await apiLogin(form.email.trim(), form.password)
+          : await apiRegister(form.email.trim(), form.name.trim(), form.password)
       login(data.access_token, data.user)
     } catch (err) {
-      setError(
-        err.response?.data?.detail || t('auth.error_generic')
-      )
+      setError(err.response?.data?.detail || t('auth.error_generic'))
     } finally {
       setLoading(false)
     }
@@ -126,24 +150,28 @@ export default function AuthPage() {
 
           {/* Password — login & register only */}
           {mode !== 'forgot' && (
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-              <input
-                type={showPass ? 'text' : 'password'}
-                placeholder={t('auth.password')}
-                value={form.password}
-                onChange={set('password')}
-                required
-                minLength={mode === 'register' ? 8 : undefined}
-                className="w-full pl-10 pr-10 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-900 placeholder-zinc-400 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPass(s => !s)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition"
-              >
-                {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+            <div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  placeholder={t('auth.password')}
+                  value={form.password}
+                  onChange={set('password')}
+                  required
+                  className="w-full pl-10 pr-10 py-3 rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-900 placeholder-zinc-400 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(s => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition"
+                >
+                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {mode === 'register' && (
+                <p className="text-xs text-zinc-400 mt-1.5 ml-1">Minimum 8 characters.</p>
+              )}
             </div>
           )}
 

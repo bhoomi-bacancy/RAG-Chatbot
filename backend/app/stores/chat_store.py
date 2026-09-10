@@ -71,6 +71,11 @@ def delete_chat(user_id: str, chat_id: str):
     sb.table("chats").delete().eq("id", chat_id).eq("user_id", user_id).execute()
 
 
+def set_chat_folder(user_id: str, chat_id: str, folder_id):
+    sb = get_supabase()
+    sb.table("chats").update({"folder_id": folder_id}).eq("id", chat_id).eq("user_id", user_id).execute()
+
+
 # ── helpers ──────────────────────────────────────────────────────────────────
 
 def _format_chat(chat: dict, messages: list) -> dict:
@@ -80,6 +85,7 @@ def _format_chat(chat: dict, messages: list) -> dict:
         "created_at": chat["created_at"],
         "updated_at": chat["updated_at"],
         "document_ids": chat.get("document_ids") or [],
+        "folder_id": chat.get("folder_id"),
         "messages": [
             {
                 "role": m["role"],

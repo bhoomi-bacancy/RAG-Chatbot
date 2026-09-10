@@ -91,6 +91,7 @@ class UserPublic(BaseModel):
     plan: str
     daily_usage: int
     daily_limit: int
+    avatar_url: Optional[str] = None
 
 
 class TokenResponse(BaseModel):
@@ -105,6 +106,21 @@ class ChatSession(BaseModel):
     created_at: str
     updated_at: str
     document_ids: List[str] = []
+    folder_id: Optional[str] = None
+
+
+class FolderPublic(BaseModel):
+    id: str
+    name: str
+    created_at: str
+
+
+class FolderCreate(BaseModel):
+    name: str
+
+
+class FolderRename(BaseModel):
+    name: str
 
 
 class ChatSessionDetail(ChatSession):
@@ -117,3 +133,11 @@ class CreateChatRequest(BaseModel):
 
 class RenameChatRequest(BaseModel):
     title: str
+
+
+class MoveChatFolderRequest(BaseModel):
+    folder_id: Optional[str] = None
+
+
+class AvatarUpdateRequest(BaseModel):
+    avatar_url: str

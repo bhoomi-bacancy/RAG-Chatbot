@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
-from app.models import ChatSession, ChatSessionDetail, CreateChatRequest, RenameChatRequest, ChatMessage
-from app.stores.chat_store import create_chat, list_chats, get_chat, delete_chat, update_title
+from app.models import ChatSession, ChatSessionDetail, CreateChatRequest, RenameChatRequest, ChatMessage, MoveChatFolderRequest
+from app.stores.chat_store import create_chat, list_chats, get_chat, delete_chat, update_title, set_chat_folder
 from app.services.auth_service import get_current_user
 
 router = APIRouter()
@@ -16,6 +16,7 @@ async def get_chats(current_user: dict = Depends(get_current_user)):
             created_at=c["created_at"],
             updated_at=c["updated_at"],
             document_ids=c.get("document_ids", []),
+            folder_id=c.get("folder_id"),
         )
         for c in chats
     ]
@@ -30,6 +31,7 @@ async def new_chat(body: CreateChatRequest, current_user: dict = Depends(get_cur
         created_at=chat["created_at"],
         updated_at=chat["updated_at"],
         document_ids=chat.get("document_ids", []),
+        folder_id=chat.get("folder_id"),
     )
 
 
@@ -44,11 +46,18 @@ async def get_chat_detail(chat_id: str, current_user: dict = Depends(get_current
         created_at=chat["created_at"],
         updated_at=chat["updated_at"],
         document_ids=chat.get("document_ids", []),
+        folder_id=chat.get("folder_id"),
         messages=[
             ChatMessage(role=m["role"], content=m["content"])
             for m in chat.get("messages", [])
         ],
     )
+
+
+@router.patch("/{chat_id}/folder")
+async def move_chat_folder(chat_id: str, body: MoveChatFolderRequest, current_user: dict = Depends(get_current_user)):
+    set_chat_folder(current_user["id"], chat_id, body.folder_id)
+    return {"ok": True}
 
 
 @router.patch("/{chat_id}", response_model=ChatSession)
@@ -68,6 +77,7 @@ async def rename_chat(chat_id: str, body: RenameChatRequest, current_user: dict 
         created_at=chat["created_at"],
         updated_at=chat["updated_at"],
         document_ids=chat.get("document_ids", []),
+        folder_id=chat.get("folder_id"),
     )
 
 

@@ -44,6 +44,9 @@ export const logout = () => {
 export const forgotPassword = (email) =>
   api.post('/auth/forgot-password', { email })
 
+export const updateAvatar = (avatarUrl) =>
+  api.post('/auth/avatar', { avatar_url: avatarUrl })
+
 export const resetPassword = (token, newPassword) =>
   api.post('/auth/reset-password', { token, new_password: newPassword })
 
@@ -56,8 +59,17 @@ export const createChat = (title = 'New Chat') =>
 
 export const getChat = id => api.get(`/chats/${id}`)
 
-export const deleteChat  = id => api.delete(`/chats/${id}`)
-export const renameChat  = (id, title) => api.patch(`/chats/${id}`, { title })
+export const deleteChat       = id => api.delete(`/chats/${id}`)
+export const renameChat       = (id, title) => api.patch(`/chats/${id}`, { title })
+export const moveChatToFolder = (chatId, folderId) =>
+  api.patch(`/chats/${chatId}/folder`, { folder_id: folderId ?? null })
+
+// ── Folders ───────────────────────────────────────────────────────────────────
+
+export const listFolders   = () => api.get('/folders/')
+export const createFolder  = (name) => api.post('/folders/', { name })
+export const renameFolder  = (id, name) => api.patch(`/folders/${id}`, { name })
+export const deleteFolder  = (id) => api.delete(`/folders/${id}`)
 
 // ── Documents ─────────────────────────────────────────────────────────────────
 
@@ -75,10 +87,83 @@ export const listDocuments = () => api.get('/documents/')
 
 export const deleteDocument = id => api.delete(`/documents/${id}`)
 
-// ── Image Edit ────────────────────────────────────────────────────────────────
+// ── Image ─────────────────────────────────────────────────────────────────────
 
 export const editImage = ({ image_url, prompt, lora_scale }) =>
   api.post('/image/edit', { image_url, prompt, lora_scale })
+
+export const generateImage = ({ prompt, image_size = 'square' }) =>
+  api.post('/image/generate', { prompt, image_size })
+
+// Client-side image editing — calls HuggingFace directly from the browser so
+// Vercel's 60s function timeout can't kill the request (HF takes 60-120s).
+const _HF_PIX2PIX = 'https://api-inference.huggingface.co/models/timbrooks/instruct-pix2pix'
+const _HF_SD15    = 'https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5'
+
+function _dataUrlToBytes(dataUrl) {
+  const b64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl
+  const bin = atob(b64)
+  const out = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+  return out
+}
+
+async function _blobToDataUrl(blob) {
+  return new Promise(resolve => {
+    const r = new FileReader()
+    r.onload = () => resolve(r.result)
+    r.readAsDataURL(blob)
+  })
+}
+
+async function _hfPost(modelUrl, imgBytes, prompt) {
+  const res = await fetch(`${modelUrl}?prompt=${encodeURIComponent(prompt)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'image/jpeg', 'X-Wait-For-Model': 'true' },
+    body: imgBytes,
+    signal: AbortSignal.timeout(150000), // 2.5 min per attempt
+  })
+  const ct = res.headers.get('content-type') || ''
+  if (res.ok && ct.includes('image')) return res.blob()
+  const text = await res.text().catch(() => '')
+  const isBusy = res.status === 503
+    || text.includes('Errno 16')
+    || text.toLowerCase().includes('busy')
+    || text.toLowerCase().includes('loading')
+  const err = new Error(text.slice(0, 300) || `HTTP ${res.status}`)
+  err.status = res.status
+  err.isBusy = isBusy
+  err.isRateLimit = res.status === 429
+  throw err
+}
+
+export async function editImageClient(imageDataUrl, prompt, onStatus) {
+  const imgBytes = _dataUrlToBytes(imageDataUrl)
+  const models = [_HF_PIX2PIX, _HF_SD15]
+  const MAX_RETRIES = 3
+
+  for (let m = 0; m < models.length; m++) {
+    const modelUrl = models[m]
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        if (attempt > 0) {
+          const wait = 20 + attempt * 15  // 35s, 50s
+          onStatus?.(`Model busy — retrying in ${wait}s (attempt ${attempt + 1}/${MAX_RETRIES})…`)
+          await new Promise(r => setTimeout(r, wait * 1000))
+        }
+        onStatus?.(m === 0 ? 'Sending to AI model…' : 'Trying fallback model…')
+        const blob = await _hfPost(modelUrl, imgBytes, prompt)
+        return await _blobToDataUrl(blob)
+      } catch (err) {
+        if (err.isRateLimit) throw new Error('Rate limit reached — wait a minute and try again.')
+        if (!err.isBusy) throw err  // bad request, auth error etc — don't retry
+        // busy: loop to next attempt
+      }
+    }
+    onStatus?.('Primary model unavailable — switching to fallback…')
+  }
+  throw new Error('Both models are busy. Please try again in a few minutes.')
+}
 
 // ── Providers ─────────────────────────────────────────────────────────────────
 

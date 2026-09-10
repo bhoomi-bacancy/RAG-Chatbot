@@ -76,3 +76,8 @@ def clear_reset_token(user_id: str) -> None:
         "reset_token": None,
         "reset_token_expiry": None,
     }).eq("id", user_id).execute()
+
+
+def update_avatar(user_id: str, avatar_url: str) -> None:
+    sb = get_supabase()
+    sb.table("users").update({"avatar_url": avatar_url}).eq("id", user_id).execute()

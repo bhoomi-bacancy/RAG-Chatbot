@@ -5,11 +5,12 @@ from fastapi import APIRouter, HTTPException, Depends
 
 from app.models import (
     UserCreate, UserLogin, TokenResponse, UserPublic,
-    ForgotPasswordRequest, ResetPasswordRequest,
+    ForgotPasswordRequest, ResetPasswordRequest, AvatarUpdateRequest,
 )
 from app.stores.user_store import (
     create_user, get_by_email, get_by_id, get_usage,
     save_reset_token, get_by_reset_token, update_password, clear_reset_token,
+    update_avatar,
 )
 from app.services.auth_service import (
     hash_password,
@@ -44,6 +45,7 @@ async def register(body: UserCreate):
             plan=user["plan"],
             daily_usage=usage,
             daily_limit=settings.free_daily_limit,
+            avatar_url=user.get("avatar_url"),
         ),
     )
 
@@ -63,6 +65,7 @@ async def login(body: UserLogin):
             plan=user["plan"],
             daily_usage=usage,
             daily_limit=settings.free_daily_limit,
+            avatar_url=user.get("avatar_url"),
         ),
     )
 
@@ -77,6 +80,22 @@ async def me(current_user: dict = Depends(get_current_user)):
         plan=current_user["plan"],
         daily_usage=usage,
         daily_limit=settings.free_daily_limit,
+        avatar_url=current_user.get("avatar_url"),
+    )
+
+
+@router.post("/avatar", response_model=UserPublic)
+async def upload_avatar(body: AvatarUpdateRequest, current_user: dict = Depends(get_current_user)):
+    update_avatar(current_user["id"], body.avatar_url)
+    usage = get_usage(current_user["id"])
+    return UserPublic(
+        id=current_user["id"],
+        email=current_user["email"],
+        name=current_user["name"],
+        plan=current_user["plan"],
+        daily_usage=usage,
+        daily_limit=settings.free_daily_limit,
+        avatar_url=body.avatar_url,
     )
 
 
