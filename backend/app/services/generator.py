@@ -34,10 +34,9 @@ Answer ONLY using the retrieved document context provided below. Do not use outs
 def _system_general(language: Optional[str]) -> str:
     return f"""You are MedAssist, a helpful AI assistant for medical documents.
 
-No documents have been uploaded or found yet.
-- Let the user know no document context is available and ask them to upload a document first.
-- You may answer very general, non-clinical questions from your knowledge, but always recommend the user upload their medical document for accurate, document-specific answers.
-- Never invent or guess medical facts, diagnoses, or treatment details.
+No document context was found for this query. Answer the user's question helpfully and clearly.
+- Be clear, concise, and well-structured.
+- For specific medical questions about a patient's report or test results, suggest uploading the relevant document for a more accurate, document-specific answer.
 - {_language_instruction(language)}"""
 
 

@@ -34,11 +34,12 @@ def retrieve_chunks(
         top_k=effective_k,
     )
 
-    # When FTS finds nothing, fall back to direct chunk fetch so the LLM always
-    # sees document content (e.g. "summarize this" has no keyword overlap).
-    # - document_ids provided → fetch from those specific docs
-    # - document_ids=None → fetch from all user uploads (Documents page uploads)
-    if not results:
+    # When explicit document_ids are provided but FTS finds nothing (e.g.
+    # "summarize this" has no keyword overlap with chunk content), fall back to
+    # fetching the first N chunks directly so the LLM always sees the document.
+    # Do NOT fall back when document_ids is None — that would inject random
+    # document chunks into general conversations and produce wrong answers.
+    if not results and document_ids:
         results = get_fallback_chunks(user_id, document_ids, effective_k)
 
     return [
