@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { ArrowUp, Paperclip, X, Loader2, Sparkles, MessageSquare, FileText, ChevronDown, ImagePlus, Menu } from 'lucide-react'
+import { ArrowUp, Paperclip, X, Loader2, Sparkles, MessageSquare, FileText, ChevronDown, ImagePlus, Menu, Download } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import i18n from '../i18n'
-import { streamChat, getChat, createChat, uploadDocument, renameChat, getConfiguredProviders, getMyProviderKeys, deleteProviderKey, translateMessages } from '../api/client'
+import { streamChat, getChat, createChat, uploadDocument, renameChat, getConfiguredProviders, getMyProviderKeys, deleteProviderKey, translateMessages, getSuggestions } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import MessageBubble from './MessageBubble'
 import ModelPickerModal, { MODELS, PROVIDERS } from './ModelPickerModal'
@@ -76,6 +76,7 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
   const [platformProviders, setPlatformProviders] = useState(['groq'])
 
   const [attachedImages, setAttachedImages] = useState([])
+  const [suggestions, setSuggestions] = useState([])
 
   const scrollRef      = useRef(null)
   const textareaRef    = useRef(null)
@@ -158,6 +159,7 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
 
   /* ── Load chat history ──────────────────────────────────────────────────── */
   useEffect(() => {
+    setSuggestions([])
     if (!chatId) { setMessages([]); return }
     if (skipReloadRef.current) { skipReloadRef.current = false; return }
     setLoadingChat(true)
@@ -318,15 +320,24 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
               m.id === assistantId ? { ...m, content: m.content + token } : m
             )),
           onDone: confidence => {
+            let finalContent = ''
             setMessages(prev => prev.map(m => {
               if (m.id === assistantId) {
                 if (m.content && !originalMsgsRef.current[m.id]) originalMsgsRef.current[m.id] = m.content
+                finalContent = m.content
                 return { ...m, confidence, streaming: false }
               }
               return m
             }))
             setStreaming(false)
             updateUser({ daily_usage: (user?.daily_usage || 0) + 1 })
+            // Fetch follow-up suggestions asynchronously (non-blocking)
+            if (finalContent) {
+              setSuggestions([])
+              getSuggestions(trimmed, finalContent, i18n.language)
+                .then(({ data }) => setSuggestions(data.suggestions || []))
+                .catch(() => {})
+            }
           },
           onError: err => {
             setMessages(prev => prev.map(m =>
@@ -490,6 +501,48 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
     t('chat.suggestions.list'),
   ]
 
+  const exportChatAsPDF = () => {
+    const title = chatsRef.current.find(c => c.id === chatId)?.title || 'MedAssist Chat'
+    const rows = messages
+      .filter(m => !m.streaming && m.content)
+      .map(m => {
+        const role = m.role === 'user' ? 'You' : 'MedAssist'
+        const bg = m.role === 'user' ? '#fff7ed' : '#f8fafc'
+        const border = m.role === 'user' ? '#fed7aa' : '#e2e8f0'
+        return `<div style="margin-bottom:16px;padding:14px 16px;background:${bg};border:1px solid ${border};border-radius:12px;">
+          <div style="font-size:11px;font-weight:600;color:${m.role === 'user' ? '#ea580c' : '#64748b'};margin-bottom:6px;">${role}</div>
+          <div style="font-size:14px;color:#1e293b;white-space:pre-wrap;line-height:1.6;">${m.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+        </div>`
+      })
+      .join('')
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+      <title>${title}</title>
+      <style>body{font-family:-apple-system,sans-serif;max-width:720px;margin:40px auto;padding:0 24px}
+      @media print{body{margin:0 auto}}</style>
+    </head><body>
+      <div style="border-bottom:2px solid #f97316;padding-bottom:16px;margin-bottom:24px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;background:linear-gradient(135deg,#f97316,#ea580c);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <span style="color:white;font-size:16px;">✦</span>
+          </div>
+          <div>
+            <div style="font-size:18px;font-weight:700;color:#1e293b;">${title}</div>
+            <div style="font-size:12px;color:#94a3b8;">Exported from MedAssist · ${new Date().toLocaleDateString()}</div>
+          </div>
+        </div>
+      </div>
+      ${rows}
+    </body></html>`
+
+    const win = window.open('', '_blank')
+    if (!win) return
+    win.document.write(html)
+    win.document.close()
+    win.focus()
+    setTimeout(() => win.print(), 400)
+  }
+
   const handleVoiceUserTranscript = text => {
     if (!text?.trim()) return
     setMessages(prev => [...prev, { id: nextId(), role: 'user',      content: text, sources: [], streaming: false, attachments: [] }])
@@ -588,13 +641,22 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
   return (
     <div className="flex-1 flex flex-col bg-white min-h-0">
       {/* Mobile header */}
-      <div className="md:hidden shrink-0 flex items-center px-4 py-3 border-b border-zinc-100 bg-white">
+      <div className="md:hidden shrink-0 flex items-center justify-between px-4 py-3 border-b border-zinc-100 bg-white">
         <button
           onClick={onOpenSidebar}
           className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 transition"
         >
           <Menu className="w-5 h-5" />
         </button>
+        {messages.length > 0 && (
+          <button
+            onClick={exportChatAsPDF}
+            title="Export chat as PDF"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+        )}
       </div>
       <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0">
         {loadingChat ? (
@@ -608,9 +670,23 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
           </div>
         ) : (
           <div className="max-w-3xl mx-auto w-full py-6">
+            {/* Desktop export button — top-right of message area */}
+            {messages.length > 0 && (
+              <div className="hidden md:flex justify-end mb-2 px-4">
+                <button
+                  onClick={exportChatAsPDF}
+                  title="Export chat as PDF"
+                  className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 px-2.5 py-1.5 rounded-lg transition"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Export PDF
+                </button>
+              </div>
+            )}
+
             {messages.map((msg, i) => {
               const isLastUser = msg.role === 'user' && i === messages.length - 2
-              // Build history up to (not including) the user msg before this assistant msg
+              const isLastAssistant = msg.role === 'assistant' && i === messages.length - 1 && !msg.streaming
               const regenHandler = msg.role === 'assistant' && !msg.streaming && messages[i - 1]?.role === 'user'
                 ? () => {
                     const prevUserMsg = messages[i - 1]
@@ -624,6 +700,24 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
               return (
                 <div key={msg.id} ref={isLastUser ? lastUserMsgRef : null}>
                   <MessageBubble message={msg} onOpenDocuments={onOpenDocuments} onRegenerate={regenHandler} />
+                  {/* Follow-up suggestion chips — only below the last assistant message */}
+                  {isLastAssistant && suggestions.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3 mb-1 pl-10">
+                      {suggestions.map((s, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setSuggestions([])
+                            sendMessage(s)
+                          }}
+                          className="text-xs px-3 py-1.5 rounded-full border border-orange-200 bg-orange-50 text-orange-700
+                            hover:bg-orange-100 hover:border-orange-300 transition-all"
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )
             })}

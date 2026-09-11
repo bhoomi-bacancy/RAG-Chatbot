@@ -3,7 +3,7 @@ import traceback
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
-from app.models import ChatRequest, ChatResponse, Source, TranslateRequest, TranslateResponse
+from app.models import ChatRequest, ChatResponse, Source, TranslateRequest, TranslateResponse, SuggestionsRequest, SuggestionsResponse
 from app.services.auth_service import get_current_user
 from app.services.retriever import retrieve_chunks
 from app.services.generator import generate_response, stream_response, translate_texts
@@ -121,6 +121,46 @@ async def chat_stream(request: ChatRequest, current_user: dict = Depends(get_cur
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/suggestions", response_model=SuggestionsResponse)
+async def get_suggestions(request: SuggestionsRequest, current_user: dict = Depends(get_current_user)):
+    """Generate 3 follow-up question suggestions based on the last Q&A pair."""
+    from groq import Groq
+    from app.config import settings
+
+    client = Groq(api_key=settings.groq_api_key)
+    lang_map = {'en': 'English', 'hi': 'Hindi', 'es': 'Spanish', 'fr': 'French', 'de': 'German', 'ar': 'Arabic'}
+    lang_name = lang_map.get(request.language or 'en', 'English')
+
+    prompt = (
+        f"Based on this medical Q&A, generate exactly 3 short follow-up questions a patient or clinician might ask next.\n\n"
+        f"Q: {request.message[:300]}\nA: {request.response[:500]}\n\n"
+        f"Rules:\n"
+        f"- Return ONLY a numbered list: 1. ... 2. ... 3. ...\n"
+        f"- Each question must be under 12 words\n"
+        f"- Make them specific, medically relevant, and distinct\n"
+        f"- Write in {lang_name}"
+    )
+
+    try:
+        resp = client.chat.completions.create(
+            model=settings.groq_model,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=200,
+            temperature=0.7,
+        )
+        text = (resp.choices[0].message.content or "").strip()
+        suggestions = []
+        for line in text.splitlines():
+            line = line.strip()
+            if line and line[0].isdigit() and '.' in line:
+                q = line.split('.', 1)[1].strip().strip('"').strip("'")
+                if q:
+                    suggestions.append(q)
+        return SuggestionsResponse(suggestions=suggestions[:3])
+    except Exception:
+        return SuggestionsResponse(suggestions=[])
 
 
 @router.post("/translate", response_model=TranslateResponse)

@@ -162,3 +162,17 @@ class TranslateRequest(BaseModel):
 
 class TranslateResponse(BaseModel):
     translations: List[str]
+
+
+class SuggestionsRequest(BaseModel):
+    message: str
+    response: str
+    language: Optional[str] = None
+
+
+class SuggestionsResponse(BaseModel):
+    suggestions: List[str]
+
+
+class DocumentSummaryResponse(BaseModel):
+    summary: str

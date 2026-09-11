@@ -65,6 +65,9 @@ export const linkedinAuth  = (code, redirectUri) =>
 export const translateMessages = (texts, language) =>
   api.post('/chat/translate', { texts, language })
 
+export const getSuggestions = (message, response, language) =>
+  api.post('/chat/suggestions', { message, response, language })
+
 // ── Chats ─────────────────────────────────────────────────────────────────────
 
 export const listChats = () => api.get('/chats/')
@@ -104,6 +107,8 @@ export const generateDiagram = (prompt, currentCode) =>
   api.post('/diagrams/generate', { prompt, current_code: currentCode || null })
 
 export const deleteDocument = id => api.delete(`/documents/${id}`)
+
+export const getDocumentSummary = id => api.get(`/documents/${id}/summary`)
 
 // ── Image ─────────────────────────────────────────────────────────────────────
 

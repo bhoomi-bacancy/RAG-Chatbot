@@ -7,7 +7,7 @@ from typing import List
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from app.database import add_chunks, delete_chunks
-from app.models import DocumentMetadata, UploadResponse, BatchUploadResponse, BatchFileResult
+from app.models import DocumentMetadata, UploadResponse, BatchUploadResponse, BatchFileResult, DocumentSummaryResponse
 from app.services.auth_service import get_current_user
 from app.services.document_processor import process_document, deduplicate_chunks
 from app.stores.chat_store import add_doc
@@ -316,6 +316,72 @@ async def list_documents(current_user: dict = Depends(get_current_user)):
         )
         for doc in (result.data or [])
     ]
+
+
+@router.get("/{document_id}/summary", response_model=DocumentSummaryResponse)
+async def get_document_summary(document_id: str, current_user: dict = Depends(get_current_user)):
+    """Generate an AI summary of an uploaded document from its stored chunks."""
+    from app.config import settings
+    from groq import Groq
+
+    user_id = current_user["id"]
+    sb = get_supabase()
+
+    # Verify ownership and get filename
+    doc_result = (
+        sb.table("documents")
+        .select("filename")
+        .eq("id", document_id)
+        .eq("user_id", user_id)
+        .single()
+        .execute()
+    )
+    if not doc_result.data:
+        raise HTTPException(status_code=404, detail="Document not found.")
+
+    filename = doc_result.data["filename"]
+
+    # Fetch top chunks (ordered by page_number for reading order)
+    chunks_result = (
+        sb.table("document_chunks")
+        .select("content, page_number")
+        .eq("document_id", document_id)
+        .eq("user_id", user_id)
+        .order("page_number")
+        .limit(8)
+        .execute()
+    )
+    chunks = chunks_result.data or []
+    if not chunks:
+        raise HTTPException(status_code=422, detail="No content found for this document.")
+
+    # Build context from chunks (cap at 3000 chars)
+    combined = "\n\n".join(c["content"] for c in chunks)
+    if len(combined) > 3000:
+        combined = combined[:3000] + "…"
+
+    prompt = (
+        f"You are a medical document analyst. Summarize the document '{filename}' concisely.\n\n"
+        f"Document content:\n{combined}\n\n"
+        f"Return a structured summary with these sections (use markdown):\n"
+        f"**Document Type:** (e.g. Lab Report, Prescription, Discharge Summary)\n"
+        f"**Key Findings:** (2-4 bullet points of the most important medical information)\n"
+        f"**Notable Values:** (any specific lab values, dosages, or dates mentioned)\n\n"
+        f"Keep the total summary under 150 words. Be factual and precise."
+    )
+
+    try:
+        client = Groq(api_key=settings.groq_api_key)
+        resp = client.chat.completions.create(
+            model=settings.groq_model,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=400,
+            temperature=0.1,
+        )
+        summary = (resp.choices[0].message.content or "").strip()
+        return DocumentSummaryResponse(summary=summary)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Summary generation failed: {exc}")
 
 
 @router.delete("/{document_id}")
