@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import { X, Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import AuthPage from './pages/AuthPage'
 import Sidebar from './components/Sidebar'
 import ChatWindow from './components/ChatWindow'
 import DocumentsPage from './pages/DocumentsPage'
 import ImageEditPage from './pages/ImageEditPage'
 import DiagramPage from './pages/DiagramPage'
+import SharedChatPage from './pages/SharedChatPage'
 import { resetPassword } from './api/client'
 
 /* ── Reset Password Modal ─────────────────────────────────────────────────── */
@@ -161,7 +163,7 @@ function AppShell() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-zinc-900 flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
@@ -176,7 +178,7 @@ function AppShell() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white">
+    <div className="flex h-screen overflow-hidden bg-white dark:bg-zinc-900">
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/50 md:hidden"
@@ -246,9 +248,15 @@ function AppShell() {
 }
 
 export default function App() {
+  const sharedMatch = window.location.pathname.match(/^\/shared\/(.+)$/)
+  if (sharedMatch) {
+    return <SharedChatPage token={sharedMatch[1]} />
+  }
   return (
-    <AuthProvider>
-      <AppShell />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppShell />
+      </AuthProvider>
+    </ThemeProvider>
   )
 }

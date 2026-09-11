@@ -176,3 +176,17 @@ class SuggestionsResponse(BaseModel):
 
 class DocumentSummaryResponse(BaseModel):
     summary: str
+
+
+class ShareResponse(BaseModel):
+    token: str
+
+
+class SharedChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class SharedChatResponse(BaseModel):
+    title: str
+    messages: List[SharedChatMessage]

@@ -75,19 +75,19 @@ function SourceCard({ source, index }) {
       : 'bg-red-50 text-red-600 border-red-200'
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden text-xs bg-white">
+    <div className="border border-gray-200 dark:border-zinc-700 rounded-xl overflow-hidden text-xs bg-white dark:bg-zinc-800">
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-gray-50 transition-colors text-left"
+        className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors text-left"
       >
         <FileText className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-        <span className="flex-1 font-medium text-gray-700 truncate">[{index}] {source.filename}</span>
+        <span className="flex-1 font-medium text-gray-700 dark:text-zinc-300 truncate">[{index}] {source.filename}</span>
         <span className="text-gray-400 shrink-0 text-[11px]">p.{source.page_number}</span>
         <span className={`shrink-0 text-[11px] font-semibold px-1.5 py-0.5 rounded-md border ${badgeCls}`}>{score}%</span>
         {open ? <ChevronUp className="w-3.5 h-3.5 text-gray-400 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
       </button>
       {open && (
-        <div className="px-3 py-2.5 text-gray-600 leading-relaxed border-t border-gray-100 bg-gray-50">
+        <div className="px-3 py-2.5 text-gray-600 dark:text-zinc-400 leading-relaxed border-t border-gray-100 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900">
           {source.chunk_text}
         </div>
       )}
@@ -168,7 +168,7 @@ export default function MessageBubble({ message, onOpenDocuments, onRegenerate }
               </div>
             )}
             {message.content && (
-              <div className="bg-zinc-100 text-zinc-900 rounded-2xl rounded-br-sm px-4 py-3 text-sm leading-relaxed">
+              <div className="bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-2xl rounded-br-sm px-4 py-3 text-sm leading-relaxed">
                 {message.content}
               </div>
             )}
@@ -193,7 +193,7 @@ export default function MessageBubble({ message, onOpenDocuments, onRegenerate }
       <div className="flex-1 min-w-0 pb-1">
 
         {/* Content */}
-        <div className="text-sm text-gray-800 leading-relaxed prose-chat">
+        <div className="text-sm text-gray-800 dark:text-zinc-300 leading-relaxed prose-chat">
           {isStreaming && !message.content ? (
             /* Waiting for first token */
             <div className="flex items-center gap-2 text-zinc-400 text-xs py-1">
@@ -255,7 +255,7 @@ export default function MessageBubble({ message, onOpenDocuments, onRegenerate }
                 <button
                   onClick={handleCopy}
                   title="Copy response"
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 >
                   {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                   {copied ? 'Copied' : 'Copy'}
@@ -264,7 +264,7 @@ export default function MessageBubble({ message, onOpenDocuments, onRegenerate }
                   <button
                     onClick={onRegenerate}
                     title="Regenerate response"
-                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                   >
                     <RotateCcw className="w-3 h-3" />
                     Regenerate

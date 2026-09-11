@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import documents, chat, auth, chats, providers, image, folders, vapi, diagrams
+from app.routers import documents, chat, auth, chats, providers, image, folders, vapi, diagrams, shared
 
 app = FastAPI(
     title="Inkira RAG API",
@@ -38,6 +38,7 @@ app.include_router(image.router, prefix="/api/image", tags=["Image"])
 app.include_router(folders.router, prefix="/api/folders", tags=["Folders"])
 app.include_router(vapi.router,      prefix="/api/vapi",      tags=["Vapi"])
 app.include_router(diagrams.router,  prefix="/api/diagrams",  tags=["Diagrams"])
+app.include_router(shared.router,    prefix="/api/share",     tags=["Share"])
 
 
 @app.get("/health", tags=["Health"])

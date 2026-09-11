@@ -110,6 +110,16 @@ export const deleteDocument = id => api.delete(`/documents/${id}`)
 
 export const getDocumentSummary = id => api.get(`/documents/${id}/summary`)
 
+// ── Share ──────────────────────────────────────────────────────────────────────
+
+export const shareChat   = (chatId) => api.post(`/share/chats/${chatId}`)
+export const unshareChat = (chatId) => api.delete(`/share/chats/${chatId}`)
+export const getSharedChat = (token) =>
+  fetch(`${BASE_URL}/share/${token}`).then(r => {
+    if (!r.ok) throw new Error('Shared chat not found')
+    return r.json()
+  })
+
 // ── Image ─────────────────────────────────────────────────────────────────────
 
 export const editImage = ({ image_url, prompt, lora_scale }) =>

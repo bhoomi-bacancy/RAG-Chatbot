@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Bot, Plus, Trash2, MessageSquare, LogOut, Pencil, Check, X,
   FolderOpen, Wand2, FolderPlus, ChevronRight, ChevronDown,
-  Folder, Camera, Loader2, GitFork,
+  Folder, Camera, Loader2, GitFork, Sun, Moon,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -12,6 +12,7 @@ import {
   moveChatToFolder, updateAvatar as apiUpdateAvatar,
 } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
 import LanguagePicker from './LanguagePicker'
 
 async function resizeImage(file, maxSize = 200) {
@@ -292,6 +293,7 @@ export default function Sidebar({
 }) {
   const { user, logout, updateUser } = useAuth()
   const { t } = useTranslation()
+  const { dark, toggle: toggleTheme } = useTheme()
   const [deletingId,      setDeletingId]      = useState(null)
   const [creatingChat,    setCreatingChat]    = useState(false)
   const [folders,         setFolders]         = useState([])
@@ -618,9 +620,18 @@ export default function Sidebar({
       {/* Spacer for image generation / diagrams view */}
       {(currentView === 'image-edit' || currentView === 'diagrams') && <div className="flex-1" />}
 
-      {/* Language picker */}
-      <div className="px-2 pb-1">
-        <LanguagePicker />
+      {/* Language + Theme */}
+      <div className="px-2 pb-1 flex items-center gap-1">
+        <div className="flex-1">
+          <LanguagePicker />
+        </div>
+        <button
+          onClick={toggleTheme}
+          title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition"
+        >
+          {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </button>
       </div>
 
       {/* User section with clickable avatar */}

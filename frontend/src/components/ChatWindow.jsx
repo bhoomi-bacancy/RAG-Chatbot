@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { ArrowUp, Paperclip, X, Loader2, Sparkles, MessageSquare, FileText, ChevronDown, ImagePlus, Menu, Download } from 'lucide-react'
+import { ArrowUp, Paperclip, X, Loader2, Sparkles, MessageSquare, FileText, ChevronDown, ImagePlus, Menu, Download, Share2, Check, Link } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import i18n from '../i18n'
-import { streamChat, getChat, createChat, uploadDocument, renameChat, getConfiguredProviders, getMyProviderKeys, deleteProviderKey, translateMessages, getSuggestions } from '../api/client'
+import { streamChat, getChat, createChat, uploadDocument, renameChat, getConfiguredProviders, getMyProviderKeys, deleteProviderKey, translateMessages, getSuggestions, shareChat, unshareChat } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import MessageBubble from './MessageBubble'
 import ModelPickerModal, { MODELS, PROVIDERS } from './ModelPickerModal'
@@ -59,6 +59,116 @@ function AttachmentChip({ name, size, onRemove }) {
   )
 }
 
+/* ── ShareModal ────────────────────────────────────────────────────────────── */
+function ShareModal({ chatId, onClose }) {
+  const [token, setToken]   = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    shareChat(chatId)
+      .then(({ data }) => setToken(data.token))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [chatId])
+
+  const shareLink = token ? `${window.location.origin}/shared/${token}` : ''
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(shareLink).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    })
+  }
+
+  const handleUnshare = async () => {
+    try {
+      await unshareChat(chatId)
+      setToken(null)
+    } catch {}
+  }
+
+  const handleReshare = async () => {
+    setLoading(true)
+    try {
+      const { data } = await shareChat(chatId)
+      setToken(data.token)
+    } catch {}
+    setLoading(false)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
+      <div
+        className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl shadow-xl w-full max-w-md p-6 relative"
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="w-8 h-8 bg-orange-100 dark:bg-orange-950 rounded-xl flex items-center justify-center">
+            <Share2 className="w-4 h-4 text-orange-500" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Share Conversation</h3>
+            <p className="text-xs text-zinc-400">Anyone with the link can view this chat</p>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="w-5 h-5 text-orange-400 animate-spin" />
+          </div>
+        ) : token ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2.5">
+              <Link className="w-4 h-4 text-zinc-400 shrink-0" />
+              <input
+                readOnly
+                value={shareLink}
+                className="flex-1 bg-transparent text-xs text-zinc-600 dark:text-zinc-400 outline-none truncate"
+                onFocus={e => e.target.select()}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleCopy}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium py-2.5 rounded-xl transition"
+              >
+                {copied ? <Check className="w-4 h-4" /> : <Link className="w-4 h-4" />}
+                {copied ? 'Copied!' : 'Copy link'}
+              </button>
+              <button
+                onClick={handleUnshare}
+                className="px-3 py-2.5 rounded-xl text-sm text-zinc-500 dark:text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition"
+                title="Remove share link"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">This chat is not currently shared.</p>
+            <button
+              onClick={handleReshare}
+              className="w-full flex items-center justify-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium py-2.5 rounded-xl transition"
+            >
+              <Share2 className="w-4 h-4" />
+              Create share link
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onOpenDocuments, freshlyConnectedProvider, onOpenSidebar }) {
   const { user, updateUser } = useAuth()
   const { t } = useTranslation()
@@ -77,6 +187,7 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
 
   const [attachedImages, setAttachedImages] = useState([])
   const [suggestions, setSuggestions] = useState([])
+  const [showShare, setShowShare] = useState(false)
 
   const scrollRef      = useRef(null)
   const textareaRef    = useRef(null)
@@ -559,10 +670,10 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
   /* ── Welcome screen ─────────────────────────────────────────────────────── */
   if (!chatId && messages.length === 0) {
     return (
-      <div className="flex-1 flex flex-col bg-white min-h-0 relative overflow-hidden">
+      <div className="flex-1 flex flex-col bg-white dark:bg-zinc-900 min-h-0 relative overflow-hidden">
 
         {/* Mobile header */}
-        <div className="md:hidden shrink-0 flex items-center px-4 py-3 border-b border-zinc-100 bg-white relative z-10">
+        <div className="md:hidden shrink-0 flex items-center px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 relative z-10">
           <button
             onClick={onOpenSidebar}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 transition"
@@ -594,8 +705,8 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
 
           {/* ── Greeting text ── */}
           <div className="text-center anim-fade-up-1">
-            <h1 className="text-xl sm:text-2xl font-semibold text-zinc-900">{t('chat.greeting')}</h1>
-            <p className="text-sm text-zinc-500 mt-2 max-w-sm leading-relaxed">
+            <h1 className="text-xl sm:text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t('chat.greeting')}</h1>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 max-w-sm leading-relaxed">
               {t('chat.greetingSubtitle')}
             </p>
           </div>
@@ -606,8 +717,8 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
               <button
                 key={i}
                 onClick={() => { setInput(s); textareaRef.current?.focus() }}
-                className={`text-left px-4 py-3.5 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-600
-                  hover:border-orange-300 hover:bg-orange-50/70 hover:text-zinc-900 hover:-translate-y-0.5 hover:shadow-sm
+                className={`text-left px-4 py-3.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-600 dark:text-zinc-400
+                  hover:border-orange-300 dark:hover:border-orange-700 hover:bg-orange-50/70 dark:hover:bg-orange-950/30 hover:text-zinc-900 dark:hover:text-zinc-200 hover:-translate-y-0.5 hover:shadow-sm
                   transition-all duration-200 leading-snug anim-fade-up-${i + 2}`}
               >
                 {s}
@@ -641,23 +752,32 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white min-h-0">
+    <div className="flex-1 flex flex-col bg-white dark:bg-zinc-900 min-h-0">
       {/* Mobile header */}
-      <div className="md:hidden shrink-0 flex items-center justify-between px-4 py-3 border-b border-zinc-100 bg-white">
+      <div className="md:hidden shrink-0 flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900">
         <button
           onClick={onOpenSidebar}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 transition"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
         >
           <Menu className="w-5 h-5" />
         </button>
         {messages.length > 0 && (
-          <button
-            onClick={exportChatAsPDF}
-            title="Export chat as PDF"
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition"
-          >
-            <Download className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowShare(true)}
+              title="Share chat"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={exportChatAsPDF}
+              title="Export chat as PDF"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+          </div>
         )}
       </div>
       <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0">
@@ -667,18 +787,26 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 px-4">
-            <MessageSquare className="w-10 h-10 text-zinc-200" />
-            <p className="text-sm text-zinc-400">{t('chat.noMessages')}</p>
+            <MessageSquare className="w-10 h-10 text-zinc-200 dark:text-zinc-700" />
+            <p className="text-sm text-zinc-400 dark:text-zinc-500">{t('chat.noMessages')}</p>
           </div>
         ) : (
           <div className="max-w-3xl mx-auto w-full py-6">
-            {/* Desktop export button — top-right of message area */}
+            {/* Desktop export + share buttons — top-right of message area */}
             {messages.length > 0 && (
-              <div className="hidden md:flex justify-end mb-2 px-4">
+              <div className="hidden md:flex justify-end mb-2 px-4 gap-1">
+                <button
+                  onClick={() => setShowShare(true)}
+                  title="Share chat"
+                  className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 px-2.5 py-1.5 rounded-lg transition"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  Share
+                </button>
                 <button
                   onClick={exportChatAsPDF}
                   title="Export chat as PDF"
-                  className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 px-2.5 py-1.5 rounded-lg transition"
+                  className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 px-2.5 py-1.5 rounded-lg transition"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Export PDF
@@ -744,6 +872,9 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
           onConnected={handleProviderConnected}
         />
       )}
+      {showShare && chatId && (
+        <ShareModal chatId={chatId} onClose={() => setShowShare(false)} />
+      )}
     </div>
   )
 }
@@ -755,7 +886,7 @@ function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, h
   const visionWarning = attachedImages.length > 0 && modelMeta?.vision === false
 
   return (
-    <div className="shrink-0 px-4 pb-5 pt-3 bg-white border-t border-zinc-100">
+    <div className="shrink-0 px-4 pb-5 pt-3 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800">
       <div className="max-w-3xl mx-auto">
         {visionWarning && (
           <div className="flex items-start gap-2.5 mb-2 px-3 py-2.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700">
@@ -776,7 +907,7 @@ function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, h
             </div>
           </div>
         )}
-        <div className={`relative bg-white border rounded-2xl shadow-sm transition-all ${streaming ? 'border-zinc-200' : 'border-zinc-200 hover:border-zinc-300 focus-within:border-zinc-400 focus-within:shadow-md'}`}>
+        <div className={`relative bg-white dark:bg-zinc-800 border rounded-2xl shadow-sm transition-all ${streaming ? 'border-zinc-200 dark:border-zinc-700' : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 focus-within:border-zinc-400 dark:focus-within:border-zinc-500 focus-within:shadow-md'}`}>
 
           <input ref={fileInputRef} type="file" accept=".pdf,.docx,.doc,.txt" multiple className="hidden" onChange={handleFileChange} />
           <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageChange} />
@@ -808,18 +939,18 @@ function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, h
             placeholder={t('chat.placeholder')}
             disabled={streaming}
             rows={1}
-            className="w-full resize-none bg-transparent text-sm text-zinc-900 placeholder-zinc-400 outline-none px-4 pt-3 pb-12 leading-relaxed disabled:cursor-not-allowed"
+            className="w-full resize-none bg-transparent text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 outline-none px-4 pt-3 pb-12 leading-relaxed disabled:cursor-not-allowed"
             style={{ maxHeight: '200px' }}
           />
 
-          <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2 border-t border-zinc-100">
+          <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2 border-t border-zinc-100 dark:border-zinc-700">
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={streaming || attachedFiles.length >= 3}
                 title={t('chat.attachTitle')}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Paperclip className="w-4 h-4" />
               </button>
@@ -828,7 +959,7 @@ function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, h
                 onClick={() => imageInputRef.current?.click()}
                 disabled={streaming || attachedImages.length >= 4}
                 title="Attach image"
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <ImagePlus className="w-4 h-4" />
               </button>
@@ -838,7 +969,7 @@ function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, h
                 onClick={onOpenModelPicker}
                 disabled={streaming}
                 title={t('chat.selectModel')}
-                className="flex items-center gap-1 h-7 px-2 rounded-lg text-xs text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 transition disabled:opacity-30 disabled:cursor-not-allowed font-medium"
+                className="flex items-center gap-1 h-7 px-2 rounded-lg text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition disabled:opacity-30 disabled:cursor-not-allowed font-medium"
               >
                 <span className="truncate max-w-[70px] sm:max-w-[120px]">{modelLabel}</span>
                 <ChevronDown className="w-3 h-3 shrink-0" />
@@ -867,7 +998,7 @@ function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, h
           </div>
         </div>
 
-        <p className="text-center text-xs text-zinc-400 mt-2">
+        <p className="text-center text-xs text-zinc-400 dark:text-zinc-600 mt-2">
           {t('chat.disclaimer')}
         </p>
       </div>
