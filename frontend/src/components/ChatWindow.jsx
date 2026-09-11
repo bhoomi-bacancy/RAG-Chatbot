@@ -286,6 +286,21 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
       documentIds = results
         .filter(r => r.status === 'fulfilled')
         .map(r => r.value.data.document_id)
+
+      // If every upload failed, surface a clear error instead of silently
+      // sending with no context and getting a "no documents" AI response.
+      if (documentIds.length === 0) {
+        const firstErr = results.find(r => r.status === 'rejected')?.reason
+        const detail = firstErr?.response?.data?.detail || firstErr?.message || 'Upload failed'
+        setMessages(prev => prev.map(m =>
+          m.id === assistantId
+            ? { ...m, content: `⚠️ Could not upload the document: ${detail}. Please try again or upload it via the Documents page first.`, streaming: false }
+            : m
+        ))
+        setStreaming(false)
+        isSendingRef.current = false
+        return
+      }
     }
 
     // ── 3. Stream the response ─────────────────────────────────────────────
