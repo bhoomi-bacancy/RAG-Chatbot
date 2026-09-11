@@ -3,14 +3,17 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, HTTPException, Depends
 
+import httpx
+
 from app.models import (
     UserCreate, UserLogin, TokenResponse, UserPublic,
     ForgotPasswordRequest, ResetPasswordRequest, AvatarUpdateRequest,
+    GoogleAuthRequest, FacebookAuthRequest, InstagramAuthRequest, LinkedInAuthRequest,
 )
 from app.stores.user_store import (
     create_user, get_by_email, get_by_id, get_usage,
     save_reset_token, get_by_reset_token, update_password, clear_reset_token,
-    update_avatar,
+    update_avatar, find_or_create_sso_user,
 )
 from app.services.auth_service import (
     hash_password,
@@ -149,3 +152,156 @@ async def reset_password(body: ResetPasswordRequest):
     clear_reset_token(user["id"])
 
     return {"message": "Password updated successfully. You can now log in."}
+
+
+@router.post("/google", response_model=TokenResponse)
+async def google_login(body: GoogleAuthRequest):
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                "https://www.googleapis.com/oauth2/v2/userinfo",
+                headers={"Authorization": f"Bearer {body.access_token}"},
+                timeout=10.0,
+            )
+        if r.status_code != 200:
+            raise HTTPException(401, "Invalid Google token")
+        info = r.json()
+    except httpx.RequestError:
+        raise HTTPException(503, "Could not reach Google servers")
+    email = info.get("email", "").lower().strip()
+    if not email:
+        raise HTTPException(400, "Google account has no email")
+    user = find_or_create_sso_user(email, info.get("name", ""), info.get("picture"))
+    if not user:
+        raise HTTPException(500, "Failed to create user")
+    usage = get_usage(user["id"])
+    return TokenResponse(
+        access_token=create_token(user["id"]),
+        user=UserPublic(
+            id=user["id"], email=user["email"], name=user["name"],
+            plan=user["plan"], daily_usage=usage,
+            daily_limit=settings.free_daily_limit,
+            avatar_url=user.get("avatar_url"),
+        ),
+    )
+
+
+@router.post("/facebook", response_model=TokenResponse)
+async def facebook_login(body: FacebookAuthRequest):
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                "https://graph.facebook.com/me",
+                params={"fields": "id,name,email,picture.type(large)", "access_token": body.access_token},
+                timeout=10.0,
+            )
+        if r.status_code != 200:
+            raise HTTPException(401, "Invalid Facebook token")
+        info = r.json()
+        if "error" in info:
+            raise HTTPException(401, "Invalid Facebook token")
+    except httpx.RequestError:
+        raise HTTPException(503, "Could not reach Facebook servers")
+    email = info.get("email", "").lower().strip()
+    if not email:
+        raise HTTPException(400, "Facebook account has no email or email permission was not granted")
+    avatar_url = info.get("picture", {}).get("data", {}).get("url")
+    user = find_or_create_sso_user(email, info.get("name", ""), avatar_url)
+    if not user:
+        raise HTTPException(500, "Failed to create user")
+    usage = get_usage(user["id"])
+    return TokenResponse(
+        access_token=create_token(user["id"]),
+        user=UserPublic(
+            id=user["id"], email=user["email"], name=user["name"],
+            plan=user["plan"], daily_usage=usage,
+            daily_limit=settings.free_daily_limit,
+            avatar_url=user.get("avatar_url"),
+        ),
+    )
+
+
+@router.post("/instagram", response_model=TokenResponse)
+async def instagram_login(body: InstagramAuthRequest):
+    # Instagram uses Meta/Facebook's platform — access_token is a Facebook token
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                "https://graph.facebook.com/me",
+                params={"fields": "id,name,email,picture.type(large)", "access_token": body.access_token},
+                timeout=10.0,
+            )
+        if r.status_code != 200:
+            raise HTTPException(401, "Invalid Instagram/Meta token")
+        info = r.json()
+        if "error" in info:
+            raise HTTPException(401, "Invalid Instagram/Meta token")
+    except httpx.RequestError:
+        raise HTTPException(503, "Could not reach Meta servers")
+    email = info.get("email", "").lower().strip()
+    if not email:
+        raise HTTPException(400, "Instagram account has no email or permission not granted")
+    avatar_url = info.get("picture", {}).get("data", {}).get("url")
+    user = find_or_create_sso_user(email, info.get("name", ""), avatar_url)
+    if not user:
+        raise HTTPException(500, "Failed to create user")
+    usage = get_usage(user["id"])
+    return TokenResponse(
+        access_token=create_token(user["id"]),
+        user=UserPublic(
+            id=user["id"], email=user["email"], name=user["name"],
+            plan=user["plan"], daily_usage=usage,
+            daily_limit=settings.free_daily_limit,
+            avatar_url=user.get("avatar_url"),
+        ),
+    )
+
+
+@router.post("/linkedin", response_model=TokenResponse)
+async def linkedin_login(body: LinkedInAuthRequest):
+    if not settings.linkedin_client_id or not settings.linkedin_client_secret:
+        raise HTTPException(503, "LinkedIn Sign-In is not configured")
+    try:
+        async with httpx.AsyncClient() as client:
+            token_r = await client.post(
+                "https://www.linkedin.com/oauth/v2/accessToken",
+                data={
+                    "grant_type": "authorization_code",
+                    "code": body.code,
+                    "redirect_uri": body.redirect_uri,
+                    "client_id": settings.linkedin_client_id,
+                    "client_secret": settings.linkedin_client_secret,
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                timeout=15.0,
+            )
+            if token_r.status_code != 200:
+                raise HTTPException(401, "LinkedIn token exchange failed")
+            access_token = token_r.json().get("access_token")
+            info_r = await client.get(
+                "https://api.linkedin.com/v2/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=10.0,
+            )
+            if info_r.status_code != 200:
+                raise HTTPException(401, "Failed to get LinkedIn profile")
+            info = info_r.json()
+    except httpx.RequestError:
+        raise HTTPException(503, "Could not reach LinkedIn servers")
+    email = info.get("email", "").lower().strip()
+    if not email:
+        raise HTTPException(400, "LinkedIn account has no email or email permission not granted")
+    name = info.get("name") or f"{info.get('given_name', '')} {info.get('family_name', '')}".strip()
+    user = find_or_create_sso_user(email, name, info.get("picture"))
+    if not user:
+        raise HTTPException(500, "Failed to create user")
+    usage = get_usage(user["id"])
+    return TokenResponse(
+        access_token=create_token(user["id"]),
+        user=UserPublic(
+            id=user["id"], email=user["email"], name=user["name"],
+            plan=user["plan"], daily_usage=usage,
+            daily_limit=settings.free_daily_limit,
+            avatar_url=user.get("avatar_url"),
+        ),
+    )

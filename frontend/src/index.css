@@ -63,6 +63,47 @@
   animation: orbitSpin 1.1s linear infinite;
 }
 
+/* ── Voice waveform bars ──────────────────────────────────────────────────── */
+@keyframes voiceBar {
+  0%, 100% { height: 3px;  }
+  50%       { height: 14px; }
+}
+.voice-bar-1 { animation: voiceBar 0.75s ease-in-out 0.00s infinite; min-height: 3px; }
+.voice-bar-2 { animation: voiceBar 0.75s ease-in-out 0.12s infinite; min-height: 3px; }
+.voice-bar-3 { animation: voiceBar 0.75s ease-in-out 0.24s infinite; min-height: 3px; }
+.voice-bar-4 { animation: voiceBar 0.75s ease-in-out 0.12s infinite; min-height: 3px; }
+.voice-bar-5 { animation: voiceBar 0.75s ease-in-out 0.00s infinite; min-height: 3px; }
+
+/* ── Landing page animations ──────────────────────────────────────────────── */
+@keyframes floatBob {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-7px); }
+}
+.animate-float-bob { animation: floatBob 3s ease-in-out infinite; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.anim-fade-up-0 { animation: fadeInUp 0.55s ease-out 0.00s both; }
+.anim-fade-up-1 { animation: fadeInUp 0.55s ease-out 0.12s both; }
+.anim-fade-up-2 { animation: fadeInUp 0.55s ease-out 0.22s both; }
+.anim-fade-up-3 { animation: fadeInUp 0.55s ease-out 0.32s both; }
+.anim-fade-up-4 { animation: fadeInUp 0.55s ease-out 0.40s both; }
+.anim-fade-up-5 { animation: fadeInUp 0.55s ease-out 0.48s both; }
+
+@keyframes orbDrift1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(28px, -36px) scale(1.08); }
+}
+@keyframes orbDrift2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(-22px, 28px) scale(0.92); }
+}
+.animate-orb-1 { animation: orbDrift1  9s ease-in-out infinite; }
+.animate-orb-2 { animation: orbDrift2 11s ease-in-out infinite; }
+.animate-orb-3 { animation: orbDrift1 13s ease-in-out 4s infinite; }
+
 /* Blinking cursor at end of streamed text */
 @keyframes cursorBlink {
   0%, 100% { opacity: 1; }

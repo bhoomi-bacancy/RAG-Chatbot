@@ -81,3 +81,30 @@ def clear_reset_token(user_id: str) -> None:
 def update_avatar(user_id: str, avatar_url: str) -> None:
     sb = get_supabase()
     sb.table("users").update({"avatar_url": avatar_url}).eq("id", user_id).execute()
+
+
+def find_or_create_sso_user(email: str, name: str, avatar_url: str = None) -> dict:
+    """Find existing user by email, or create a new one (SSO — no password)."""
+    sb = get_supabase()
+    existing = sb.table("users").select("*").eq("email", email).limit(1).execute()
+    if existing.data:
+        user = existing.data[0]
+        # Update name/avatar if the existing user doesn't have them yet
+        updates = {}
+        if not user.get("name") and name:
+            updates["name"] = name
+        if avatar_url and not user.get("avatar_url"):
+            updates["avatar_url"] = avatar_url
+        if updates:
+            sb.table("users").update(updates).eq("id", user["id"]).execute()
+            user.update(updates)
+        return user
+    result = sb.table("users").insert({
+        "email": email,
+        "name": name or email.split("@")[0],
+        "password_hash": "SSO_NO_PASSWORD",
+        "plan": "free",
+        "daily_usage": 0,
+        "avatar_url": avatar_url,
+    }).execute()
+    return result.data[0] if result.data else None

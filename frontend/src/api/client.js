@@ -50,6 +50,21 @@ export const updateAvatar = (avatarUrl) =>
 export const resetPassword = (token, newPassword) =>
   api.post('/auth/reset-password', { token, new_password: newPassword })
 
+export const googleAuth    = (accessToken) =>
+  api.post('/auth/google',    { access_token: accessToken })
+
+export const facebookAuth  = (accessToken) =>
+  api.post('/auth/facebook',  { access_token: accessToken })
+
+export const instagramAuth = (accessToken) =>
+  api.post('/auth/instagram', { access_token: accessToken })
+
+export const linkedinAuth  = (code, redirectUri) =>
+  api.post('/auth/linkedin',  { code, redirect_uri: redirectUri })
+
+export const translateMessages = (texts, language) =>
+  api.post('/chat/translate', { texts, language })
+
 // ── Chats ─────────────────────────────────────────────────────────────────────
 
 export const listChats = () => api.get('/chats/')
@@ -84,6 +99,9 @@ export const uploadDocument = (file, chatId, onProgress) => {
 }
 
 export const listDocuments = () => api.get('/documents/')
+
+export const generateDiagram = (prompt, currentCode) =>
+  api.post('/diagrams/generate', { prompt, current_code: currentCode || null })
 
 export const deleteDocument = id => api.delete(`/documents/${id}`)
 

@@ -8,13 +8,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@greatsumini/react-facebook-login": "^3.4.0",
+    "@react-oauth/google": "^0.13.5",
+    "@vapi-ai/web": "^2.7.0",
     "axios": "^1.7.7",
     "i18next": "^26.4.2",
     "lucide-react": "^0.447.0",
+    "mermaid": "^12.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-dropzone": "^14.2.10",
     "react-i18next": "^17.0.13",
+    "react-linkedin-login-oauth2": "^3.0.0",
     "react-markdown": "^9.0.1",
     "remark-gfm": "^4.0.1"
   },

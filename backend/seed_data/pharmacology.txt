@@ -1,0 +1,89 @@
+PHARMACOLOGY AND DRUG REFERENCE GUIDE
+
+1. ANTIBIOTIC CLASSES
+
+Penicillins
+Mechanism: Inhibit bacterial cell wall synthesis by binding to penicillin-binding proteins.
+Examples: Amoxicillin, Ampicillin, Flucloxacillin, Piperacillin-Tazobactam.
+Uses: Respiratory infections, UTI, skin infections, endocarditis.
+Side effects: Allergic reactions (rash, anaphylaxis), diarrhea, Clostridioides difficile colitis.
+
+Cephalosporins (1st–5th Generation)
+1st gen (Cephalexin): gram-positive coverage. 3rd gen (Ceftriaxone): gram-negative coverage, meningitis. 5th gen (Ceftaroline): MRSA coverage.
+Side effects: Cross-hypersensitivity with penicillins (~1–2%), GI upset.
+
+Macrolides (e.g., Azithromycin, Clarithromycin, Erythromycin)
+Mechanism: Inhibit bacterial protein synthesis (50S ribosomal subunit).
+Uses: Atypical pneumonia (Mycoplasma, Chlamydia), community-acquired pneumonia, H. pylori eradication.
+Side effects: QT prolongation, GI upset, hepatotoxicity.
+
+Fluoroquinolones (e.g., Ciprofloxacin, Levofloxacin, Moxifloxacin)
+Mechanism: Inhibit DNA gyrase and topoisomerase IV.
+Uses: UTI, respiratory infections, traveler's diarrhea, certain STIs.
+Cautions: Tendinopathy/tendon rupture, QT prolongation, avoid in pregnancy, children, myasthenia gravis.
+
+Metronidazole
+Mechanism: Disrupts DNA synthesis in anaerobic organisms and protozoa.
+Uses: Anaerobic infections, C. difficile, Trichomonas, bacterial vaginosis, H. pylori (with PPI + amoxicillin).
+Side effects: Metallic taste, nausea, disulfiram-like reaction with alcohol.
+
+2. ANALGESICS
+
+Opioids (e.g., Morphine, Codeine, Tramadol, Oxycodone, Fentanyl)
+Mechanism: Agonists at μ, κ, δ opioid receptors in CNS and peripheral nervous system.
+Uses: Moderate to severe pain, palliative care.
+Side effects: Constipation, nausea, sedation, respiratory depression, dependence.
+Reversal agent: Naloxone (opioid antagonist).
+
+NSAIDs (e.g., Ibuprofen, Naproxen, Diclofenac, Ketorolac)
+Mechanism: Inhibit COX-1 and COX-2, reducing prostaglandin synthesis.
+Uses: Mild to moderate pain, fever, inflammation.
+Contraindications: Peptic ulcer disease, renal impairment, third trimester pregnancy, severe heart failure.
+Side effects: GI ulceration, renal impairment, platelet dysfunction.
+
+3. CARDIOVASCULAR DRUGS
+
+Diuretics
+- Furosemide (loop diuretic): potent, used in heart failure and edema. Monitor electrolytes, especially potassium.
+- Spironolactone (potassium-sparing): used in heart failure and hyperaldosteronism. Risk of hyperkalemia.
+- Hydrochlorothiazide (thiazide): used in hypertension. Can cause hyponatremia, hypokalemia, hyperuricemia.
+
+Anticoagulants
+- Warfarin: vitamin K antagonist, requires INR monitoring (target 2–3 for AF). Multiple drug and food interactions.
+- Heparin: unfractionated or LMWH. Used in acute settings. Reversed by protamine sulfate.
+- DOACs (Apixaban, Rivaroxaban, Dabigatran, Edoxaban): fixed dose, no routine monitoring. Rivaroxaban reversal: Andexanet alfa. Dabigatran reversal: Idarucizumab.
+
+4. ENDOCRINE DRUGS
+
+Insulin Types
+- Rapid-acting (Aspart, Lispro, Glulisine): onset 10–15 min, peak 1–2 hrs, duration 3–5 hrs.
+- Short-acting (Regular): onset 30–60 min, peak 2–4 hrs, duration 5–8 hrs.
+- Intermediate (NPH): onset 1–3 hrs, peak 6–12 hrs, duration 16–24 hrs.
+- Long-acting (Glargine, Detemir, Degludec): once daily basal, no pronounced peak.
+
+Thyroid Medications
+- Levothyroxine (T4): synthetic thyroid hormone for hypothyroidism. Take on empty stomach. TSH monitoring every 6–12 months.
+- Carbimazole / Propylthiouracil (PTU): antithyroid drugs for hyperthyroidism. Risk of agranulocytosis.
+
+5. DRUG INTERACTIONS - IMPORTANT EXAMPLES
+
+- Warfarin + NSAIDs: increased bleeding risk
+- SSRIs + Tramadol: serotonin syndrome risk
+- Statins + Macrolides/Azole antifungals: increased risk of myopathy/rhabdomyolysis
+- ACE Inhibitors + Potassium-sparing diuretics: hyperkalemia
+- Metronidazole + Alcohol: disulfiram-like reaction (flushing, tachycardia, nausea)
+- Fluoroquinolones + Antacids (containing Mg/Al/Ca): reduced absorption of quinolone
+
+6. DRUG SAFETY IN SPECIAL POPULATIONS
+
+Pregnancy (Teratogenic drugs to avoid)
+- Category X: Thalidomide, Isotretinoin, Warfarin (1st trimester), Methotrexate, Statins.
+- Safe in pregnancy: Paracetamol, Penicillins, Cephalosporins (most), Low-dose Aspirin (2nd trimester).
+
+Renal Impairment
+- Renally cleared drugs require dose reduction: Metformin (contraindicated if eGFR <30), Digoxin, Aminoglycosides, Lithium.
+- Use with caution: NSAIDs (reduce renal blood flow), ACE inhibitors (monitor creatinine and potassium).
+
+Hepatic Impairment
+- Drugs with significant hepatic metabolism need dose reduction: Paracetamol (max 2g/day), Warfarin, Opioids, Statins.
+- Avoid hepatotoxic drugs: Isoniazid, Valproate, Ketoconazole.

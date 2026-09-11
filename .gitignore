@@ -32,3 +32,5 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+.vercel

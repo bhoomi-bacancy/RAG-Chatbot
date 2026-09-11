@@ -3,10 +3,10 @@ import traceback
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
-from app.models import ChatRequest, ChatResponse, Source
+from app.models import ChatRequest, ChatResponse, Source, TranslateRequest, TranslateResponse
 from app.services.auth_service import get_current_user
 from app.services.retriever import retrieve_chunks
-from app.services.generator import generate_response, stream_response
+from app.services.generator import generate_response, stream_response, translate_texts
 from app.stores.chat_store import get_chat, update_title
 
 router = APIRouter()
@@ -118,6 +118,18 @@ async def chat_stream(request: ChatRequest, current_user: dict = Depends(get_cur
         )
     except HTTPException:
         raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/translate", response_model=TranslateResponse)
+async def translate(request: TranslateRequest, current_user: dict = Depends(get_current_user)):
+    if not request.texts:
+        return TranslateResponse(translations=[])
+    try:
+        translations = await translate_texts(request.texts, request.language)
+        return TranslateResponse(translations=translations)
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

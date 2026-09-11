@@ -1,0 +1,34 @@
+{
+  "categories": [
+    "Account",
+    "Billing",
+    "Returns",
+    "Shipping",
+    "Technical Support"
+  ],
+  "label_map": {
+    "Account": 0,
+    "Billing": 1,
+    "Returns": 2,
+    "Shipping": 3,
+    "Technical Support": 4
+  },
+  "answer_map": {
+    "Account": "For account issues, go to Settings > Account or reset your password.",
+    "Billing": "For billing questions, visit your invoice section or email billing@support.com.",
+    "Returns": "Return items within 30 days via Account > Returns.",
+    "Shipping": "Shipping takes 3-7 days. Track your order in the Orders section.",
+    "Technical Support": "Our tech team is 24/7. Submit a ticket at support.example.com."
+  },
+  "metrics": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "cv_f1_mean": 0.9886438821484319,
+    "cv_f1_std": 0.02271223570313605
+  },
+  "vocab_size": 328,
+  "train_samples": 360,
+  "test_samples": 90
+}

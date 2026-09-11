@@ -1,0 +1,15 @@
+{
+  "doc_name": "sample_document",
+  "n_chunks": 80,
+  "vocab_size": 1273,
+  "in_scope": 640,
+  "out_scope": 192,
+  "metrics": {
+    "accuracy": 0.9222,
+    "precision": 0.9078,
+    "recall": 1.0,
+    "f1": 0.9517,
+    "cv_f1_mean": 0.9536,
+    "cv_f1_std": 0.0123
+  }
+}

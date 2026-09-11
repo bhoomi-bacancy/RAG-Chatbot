@@ -1,0 +1,62 @@
+CARDIOLOGY REFERENCE GUIDE
+
+1. CARDIOVASCULAR DISEASES
+
+Coronary Artery Disease (CAD)
+Coronary artery disease is caused by the buildup of plaque (atherosclerosis) inside the coronary arteries, reducing blood flow to the heart muscle. Risk factors include hypertension, dyslipidemia, diabetes, smoking, obesity, physical inactivity, and family history. Symptoms include chest pain (angina), shortness of breath, and fatigue.
+
+Acute Myocardial Infarction (Heart Attack)
+A heart attack occurs when blood flow to a part of the heart is blocked for a long enough time that part of the heart muscle is damaged or dies. Classic symptoms: crushing chest pain radiating to the left arm or jaw, sweating, nausea, shortness of breath. Treatment: aspirin, nitrates, thrombolytics or percutaneous coronary intervention (PCI), anticoagulants, beta-blockers.
+
+Heart Failure
+Heart failure is a condition in which the heart cannot pump enough blood to meet the body's needs. Types include systolic (reduced ejection fraction, HFrEF) and diastolic (preserved ejection fraction, HFpEF). Symptoms: breathlessness, leg swelling, fatigue, orthopnea. Management: diuretics, ACE inhibitors, beta-blockers, aldosterone antagonists.
+
+Atrial Fibrillation (AF)
+AF is the most common cardiac arrhythmia characterized by irregular and often rapid heart rate. Symptoms: palpitations, shortness of breath, dizziness, chest discomfort. Risk of stroke is significantly increased. Treatment: rate control (beta-blockers, calcium channel blockers), rhythm control (antiarrhythmics), anticoagulation (warfarin, DOACs such as rivaroxaban and apixaban).
+
+2. CARDIAC INVESTIGATIONS
+
+Electrocardiogram (ECG/EKG)
+12-lead ECG records the electrical activity of the heart. Used to diagnose arrhythmias, myocardial infarction (ST elevation, new LBBB), hypertrophy, and conduction abnormalities.
+
+Echocardiography
+Ultrasound of the heart. Assesses cardiac structure and function, ejection fraction, valve abnormalities, and pericardial effusion.
+
+Cardiac Enzymes
+- Troponin I and T: highly sensitive markers for myocardial injury. Rise within 3–6 hours of MI, peak at 12–24 hours, return to normal in 10–14 days.
+- CK-MB: peaks at 10–24 hours, normalizes in 2–3 days.
+- BNP/NT-proBNP: elevated in heart failure; correlates with severity.
+
+Coronary Angiography
+Gold standard for diagnosing coronary artery disease. Visualizes coronary arteries using contrast dye. Used to guide PCI or CABG decisions.
+
+3. CARDIOVASCULAR MEDICATIONS
+
+Statins (e.g., Atorvastatin, Rosuvastatin)
+First-line for dyslipidemia and cardiovascular risk reduction. Atorvastatin 40–80 mg daily for high-risk patients. Reduces LDL by 30–55%.
+
+Aspirin
+Antiplatelet agent. 75–100 mg daily for secondary prevention of cardiovascular events. Irreversibly inhibits COX-1 and reduces thromboxane A2 production.
+
+Beta-Blockers (e.g., Metoprolol, Carvedilol, Bisoprolol)
+Reduce heart rate and myocardial oxygen demand. Used in angina, post-MI, heart failure, and hypertension. Target resting heart rate: 55–65 bpm.
+
+ACE Inhibitors (e.g., Ramipril, Lisinopril, Enalapril)
+Reduce afterload, prevent cardiac remodeling. Indicated post-MI and in heart failure. Monitor potassium and renal function.
+
+4. CARDIAC RISK SCORING
+
+Framingham Risk Score
+Estimates 10-year risk of cardiovascular events based on age, sex, total cholesterol, HDL, systolic blood pressure, smoking status, and presence of diabetes. Low risk <10%, intermediate 10–20%, high >20%.
+
+TIMI Risk Score
+Used in acute coronary syndrome to predict short-term risk and guide treatment intensity.
+
+5. LIFESTYLE MODIFICATIONS IN CARDIOVASCULAR DISEASE
+
+- Mediterranean diet: rich in fruits, vegetables, whole grains, olive oil, fish
+- Regular aerobic exercise: at least 150 minutes per week of moderate intensity
+- Smoking cessation: reduces cardiovascular risk by 50% within 1 year
+- Weight management: target BMI 18.5–24.9 kg/m²
+- Blood pressure target: <130/80 mmHg in high-risk patients
+- LDL target: <70 mg/dL in very high-risk patients, <55 mg/dL in extreme risk

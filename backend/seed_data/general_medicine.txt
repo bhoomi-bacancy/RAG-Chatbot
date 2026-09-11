@@ -1,0 +1,55 @@
+GENERAL MEDICINE REFERENCE GUIDE
+
+1. COMMON SYMPTOMS AND CONDITIONS
+
+Fever
+A fever is a temporary increase in body temperature, often due to an illness. A temperature above 38°C (100.4°F) is generally considered a fever. Causes include infections (bacterial, viral, fungal), inflammatory conditions, medications, and heat exhaustion. Treatment includes rest, fluids, and antipyretics such as paracetamol or ibuprofen.
+
+Hypertension (High Blood Pressure)
+Hypertension is defined as a sustained blood pressure above 140/90 mmHg. It is a major risk factor for heart disease, stroke, and kidney failure. Lifestyle modifications include reducing salt intake, regular exercise, weight loss, limiting alcohol, and quitting smoking. Medications include ACE inhibitors (e.g., enalapril), beta-blockers (e.g., atenolol), calcium channel blockers (e.g., amlodipine), and diuretics (e.g., hydrochlorothiazide).
+
+Diabetes Mellitus
+Type 1 diabetes is an autoimmune condition where the pancreas produces little or no insulin. Type 2 diabetes is characterized by insulin resistance. Symptoms include polyuria, polydipsia, polyphagia, fatigue, and blurred vision. Management includes blood glucose monitoring, dietary changes, exercise, oral hypoglycemics (metformin, sulfonylureas), and insulin therapy.
+
+Anemia
+Anemia is a condition where the blood lacks enough healthy red blood cells. Common types include iron-deficiency anemia, vitamin B12 deficiency anemia, and folic acid deficiency anemia. Symptoms include fatigue, weakness, pale skin, shortness of breath, and dizziness. Treatment depends on the underlying cause.
+
+2. VITAL SIGNS - NORMAL RANGES
+
+- Blood Pressure: 90/60 mmHg to 120/80 mmHg
+- Heart Rate: 60–100 beats per minute
+- Respiratory Rate: 12–20 breaths per minute
+- Body Temperature: 36.1°C to 37.2°C (97°F to 99°F)
+- Oxygen Saturation (SpO2): 95–100%
+
+3. COMMON LABORATORY VALUES
+
+- Hemoglobin: Male 13.5–17.5 g/dL, Female 12.0–15.5 g/dL
+- Fasting Blood Glucose: 70–100 mg/dL
+- HbA1c: Below 5.7% (normal), 5.7–6.4% (prediabetes), 6.5%+ (diabetes)
+- Total Cholesterol: Below 200 mg/dL (desirable)
+- LDL Cholesterol: Below 100 mg/dL (optimal)
+- HDL Cholesterol: Above 60 mg/dL (protective)
+- Serum Creatinine: Male 0.74–1.35 mg/dL, Female 0.59–1.04 mg/dL
+
+4. COMMON MEDICATIONS
+
+Paracetamol (Acetaminophen)
+Used for pain relief and fever reduction. Standard adult dose: 500–1000 mg every 4–6 hours, maximum 4000 mg/day. Avoid in liver disease.
+
+Ibuprofen
+NSAID used for pain, fever, and inflammation. Adult dose: 200–400 mg every 4–6 hours. Avoid in peptic ulcer disease, renal impairment, and pregnancy.
+
+Metformin
+First-line treatment for Type 2 diabetes. Starting dose: 500 mg twice daily with meals. Reduces hepatic glucose output and improves insulin sensitivity.
+
+Amoxicillin
+Broad-spectrum penicillin antibiotic. Commonly used for respiratory tract infections, UTIs, and skin infections. Dose: 250–500 mg three times daily.
+
+5. PREVENTIVE CARE
+
+- Annual blood pressure screening
+- Blood glucose testing every 3 years (adults >45 years)
+- Cholesterol screening every 5 years
+- Cancer screenings (colonoscopy, mammogram, Pap smear) per age-appropriate guidelines
+- Vaccinations: influenza annually, pneumococcal, hepatitis B, tetanus booster every 10 years

@@ -7,6 +7,7 @@ import Sidebar from './components/Sidebar'
 import ChatWindow from './components/ChatWindow'
 import DocumentsPage from './pages/DocumentsPage'
 import ImageEditPage from './pages/ImageEditPage'
+import DiagramPage from './pages/DiagramPage'
 import { resetPassword } from './api/client'
 
 /* ── Reset Password Modal ─────────────────────────────────────────────────── */
@@ -199,6 +200,8 @@ function AppShell() {
         <DocumentsPage onOpenSidebar={() => setSidebarOpen(true)} />
       ) : view === 'image-edit' ? (
         <ImageEditPage onOpenSidebar={() => setSidebarOpen(true)} />
+      ) : view === 'diagrams' ? (
+        <DiagramPage onOpenSidebar={() => setSidebarOpen(true)} />
       ) : (
         <ChatWindow
           chatId={currentChatId}

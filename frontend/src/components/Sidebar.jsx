@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Bot, Plus, Trash2, MessageSquare, LogOut, Pencil, Check, X,
   FolderOpen, Wand2, FolderPlus, ChevronRight, ChevronDown,
-  Folder, Camera, Loader2,
+  Folder, Camera, Loader2, GitFork,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -505,6 +505,17 @@ export default function Sidebar({
           <Wand2 className="w-4 h-4" />
           Image Generation
         </button>
+        <button
+          onClick={() => { onSetView?.('diagrams'); onClose?.() }}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition w-full text-left ${
+            currentView === 'diagrams'
+              ? 'bg-zinc-800 text-white'
+              : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+          }`}
+        >
+          <GitFork className="w-4 h-4" />
+          Diagrams
+        </button>
       </div>
 
       {/* Chat list */}
@@ -604,8 +615,8 @@ export default function Sidebar({
         </div>
       )}
 
-      {/* Spacer for image generation view */}
-      {currentView === 'image-edit' && <div className="flex-1" />}
+      {/* Spacer for image generation / diagrams view */}
+      {(currentView === 'image-edit' || currentView === 'diagrams') && <div className="flex-1" />}
 
       {/* Language picker */}
       <div className="px-2 pb-1">

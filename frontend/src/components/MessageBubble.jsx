@@ -173,8 +173,11 @@ export default function MessageBubble({ message, onOpenDocuments, onRegenerate }
               </div>
             )}
           </div>
-          <div className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center shrink-0 mb-0.5">
-            <span className="text-white text-xs font-semibold">{initial}</span>
+          <div className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center shrink-0 mb-0.5 overflow-hidden">
+            {user?.avatar_url
+              ? <img src={user.avatar_url} alt="" className="w-7 h-7 object-cover" />
+              : <span className="text-white text-xs font-semibold">{initial}</span>
+            }
           </div>
         </div>
       </div>

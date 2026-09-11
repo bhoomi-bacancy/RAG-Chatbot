@@ -1,0 +1,99 @@
+PATIENT CARE AND CLINICAL GUIDELINES
+
+1. PAIN ASSESSMENT
+
+Pain Scales
+- Numeric Rating Scale (NRS): 0 (no pain) to 10 (worst imaginable pain). 1–3 mild, 4–6 moderate, 7–10 severe.
+- Wong-Baker FACES Scale: used for children aged 3+ and patients who cannot verbalize pain.
+- Visual Analogue Scale (VAS): horizontal line from no pain to worst pain.
+
+WHO Analgesic Ladder (3-Step)
+Step 1 (Mild pain): Non-opioids — Paracetamol, NSAIDs.
+Step 2 (Moderate pain): Weak opioids — Codeine, Tramadol + non-opioids.
+Step 3 (Severe pain): Strong opioids — Morphine, Fentanyl, Oxycodone + non-opioids.
+
+2. INFECTION CONTROL
+
+Standard Precautions
+Apply to all patients regardless of diagnosis. Include hand hygiene, personal protective equipment (gloves, gowns, masks), safe handling of sharps, and respiratory hygiene.
+
+Hand Hygiene — 5 Moments (WHO)
+1. Before touching a patient
+2. Before a clean/aseptic procedure
+3. After body fluid exposure risk
+4. After touching a patient
+5. After touching patient surroundings
+
+Use alcohol-based hand rub for visibly clean hands. Use soap and water when hands are visibly soiled or after caring for C. difficile patients.
+
+Transmission-Based Precautions
+- Contact precautions: MRSA, VRE, C. difficile, scabies.
+- Droplet precautions: influenza, meningococcal disease, pertussis.
+- Airborne precautions: tuberculosis, measles, chickenpox — negative pressure room.
+
+3. WOUND CARE
+
+Wound Assessment
+Document: location, size (length × width × depth), wound bed, exudate, surrounding skin, odor, signs of infection (erythema, warmth, purulence, increased pain).
+
+Wound Healing Phases
+1. Hemostasis (minutes to hours): vasoconstriction, platelet aggregation, clot formation.
+2. Inflammation (1–4 days): neutrophils and macrophages clean wound debris.
+3. Proliferation (4–21 days): fibroblast activity, collagen deposition, angiogenesis, re-epithelialization.
+4. Remodeling (21 days to 2 years): collagen reorganization, scar maturation.
+
+Dressing Selection
+- Non-adherent dressings: for clean healing wounds.
+- Hydrocolloid: for low-to-moderate exudate wounds.
+- Foam dressings: for moderate-to-heavy exudate.
+- Silver-containing dressings: for infected or high infection-risk wounds.
+
+4. NUTRITION IN PATIENT CARE
+
+Malnutrition Screening
+Use validated tools: MUST (Malnutrition Universal Screening Tool), NRS-2002, MNA (Mini Nutritional Assessment).
+
+MUST Scoring
+- BMI score: >20 = 0, 18.5–20 = 1, <18.5 = 2.
+- Unplanned weight loss: <5% = 0, 5–10% = 1, >10% = 2.
+- Acute disease effect: if acutely ill with no nutritional intake likely for >5 days = 2.
+
+Total score: 0 = low risk (routine care), 1 = medium risk (observe), ≥2 = high risk (refer to dietitian, treat).
+
+Enteral Nutrition
+Preferred over parenteral when gut is functional. Routes: nasogastric (NG) tube, nasojejunal, percutaneous endoscopic gastrostomy (PEG).
+
+Parenteral Nutrition
+Used when enteral route is not feasible. Central PN via central venous catheter for solutions >900 mOsm/L.
+
+5. FALL PREVENTION
+
+Risk Factors
+Age >65, history of falls, medications (sedatives, opioids, antihypertensives, diuretics), cognitive impairment, incontinence, mobility impairment, vision problems.
+
+Morse Fall Scale
+Scores fall history, secondary diagnosis, ambulatory aid, IV/heparin access, gait, and mental status. Score ≥45 = high risk.
+
+Prevention Interventions
+- Bed rails up, bed in lowest position
+- Non-slip footwear
+- Call bell within reach
+- Regular toileting schedules
+- Environmental assessment (lighting, clutter)
+- Medication review (reduce polypharmacy)
+- Physiotherapy and exercise programs
+
+6. EARLY WARNING SCORES
+
+National Early Warning Score 2 (NEWS2)
+Tracks: respiratory rate, oxygen saturation, supplemental oxygen use, systolic BP, pulse rate, level of consciousness, temperature.
+
+Score interpretation:
+- 0: Minimum 12-hourly monitoring.
+- 1–4: Minimum 4–6-hourly monitoring.
+- 5–6 or single extreme: Urgent review by ward-based doctor.
+- 7+: Emergency assessment by critical care team, consider ICU transfer.
+
+SpO2 Targets
+- General patients: 94–98%
+- COPD and hypercapnic respiratory failure: 88–92%

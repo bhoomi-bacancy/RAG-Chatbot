@@ -1,0 +1,115 @@
+PROJECT SCOPE DOCUMENT — INKIRA CHATBOT PLATFORM
+Version 1.0 | Sprint: Q3 2026
+
+=============================================================
+SECTION 1: PROJECT OVERVIEW
+=============================================================
+
+The Inkira Chatbot Platform is a web-based AI assistant that
+allows users to upload documents and ask questions based on
+the document content. The platform uses RAG (Retrieval-Augmented
+Generation) to provide accurate, context-aware responses.
+
+Project Status: In Progress
+Start Date: June 1, 2026
+Target Completion: September 30, 2026
+Team: 4 developers, 1 designer, 1 QA engineer
+
+=============================================================
+SECTION 2: COMPLETED FEATURES
+=============================================================
+
+AUTHENTICATION MODULE [COMPLETE]
+- User registration with email and password is complete
+- Login and logout functionality is implemented
+- JWT token-based authentication is done
+- Password reset via email is complete
+- Session management and token refresh is implemented
+
+CHAT MODULE [COMPLETE]
+- Real-time chat interface is implemented
+- Message streaming via SSE is complete
+- Chat history persistence to database is done
+- Multiple chat sessions support is complete
+- Chat renaming and deletion is implemented
+- Auto-titling of new chats is complete
+
+DOCUMENT UPLOAD MODULE [COMPLETE]
+- PDF document upload is implemented
+- DOCX document upload is complete
+- TXT file upload is done
+- File size validation (max 50MB) is implemented
+- Document chunking and indexing is complete
+- File type validation is implemented
+
+DATABASE MODULE [COMPLETE]
+- Supabase PostgreSQL integration is done
+- User table schema is implemented
+- Chats table with metadata is complete
+- Messages table with history is done
+- Document chunks table with FTS is implemented
+- Full-text search index is complete
+
+=============================================================
+SECTION 3: IN PROGRESS FEATURES
+=============================================================
+
+RAG PIPELINE [IN PROGRESS]
+- Document retrieval by cosine similarity: in progress
+- Query expansion and rewriting: 60% complete
+- Context window management: in progress
+- Source citation in responses: 70% complete
+- Confidence scoring for answers: in progress
+
+UI IMPROVEMENTS [IN PROGRESS]
+- Dark mode support: 40% complete
+- Mobile responsive design: in progress
+- Keyboard shortcuts: not started
+- Accessibility improvements (WCAG 2.1): in progress
+
+=============================================================
+SECTION 4: PENDING FEATURES
+=============================================================
+
+ANALYTICS DASHBOARD [PENDING]
+- User activity tracking: not started
+- Query analytics and insights: not started
+- Document usage statistics: not started
+- Response quality metrics: not started
+
+ADMIN PANEL [PENDING]
+- User management interface: not started
+- System configuration panel: not started
+- Audit logs and monitoring: not started
+- Role-based access control: not started
+
+INTEGRATIONS [PENDING]
+- Slack integration: not started
+- Microsoft Teams integration: not started
+- Google Drive document sync: not started
+- REST API for third-party access: not started
+
+=============================================================
+SECTION 5: KNOWN ISSUES AND BUGS
+=============================================================
+
+BUG-001: Auto-scroll during streaming is fixed
+BUG-002: Markdown rendering in chat is fixed
+BUG-003: Chat title not saved on first message is fixed
+BUG-004: Document chunk table missing in DB is fixed
+BUG-005: Groq model name invalid error is fixed
+BUG-006: Mobile layout breaks on small screens - open
+BUG-007: Long messages cause textarea overflow - open
+BUG-008: File upload fails for files with special characters in name - open
+
+=============================================================
+SECTION 6: OUT OF SCOPE (NOT INCLUDED IN THIS SPRINT)
+=============================================================
+
+The following features are explicitly NOT part of this project:
+- Voice input or speech-to-text functionality
+- Video or image analysis
+- Real-time collaboration between multiple users
+- Native mobile applications (iOS/Android)
+- Payment processing or subscription billing
+- Email marketing or notification campaigns
