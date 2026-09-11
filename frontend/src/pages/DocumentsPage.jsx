@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
+import { useTranslation } from 'react-i18next'
 import {
   Upload, FileText, Trash2, CheckCircle, XCircle,
-  Loader2, AlertCircle, X, FolderOpen, File,
+  Loader2, AlertCircle, X, FolderOpen, File, Menu,
 } from 'lucide-react'
 import { listDocuments, uploadDocument, deleteDocument } from '../api/client'
 
@@ -29,8 +30,9 @@ function fileTypeStyle(filename) {
 }
 
 function StatusChip({ status, progress }) {
+  const { t } = useTranslation()
   if (status === 'queued')
-    return <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500 font-medium">Queued</span>
+    return <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500 font-medium">{t('docs.status_queued')}</span>
   if (status === 'uploading')
     return (
       <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium flex items-center gap-1">
@@ -41,23 +43,24 @@ function StatusChip({ status, progress }) {
   if (status === 'done')
     return (
       <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-medium flex items-center gap-1">
-        <CheckCircle className="w-3 h-3" /> Done
+        <CheckCircle className="w-3 h-3" /> {t('docs.status_done')}
       </span>
     )
   if (status === 'skipped')
     return (
       <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 font-medium flex items-center gap-1">
-        <AlertCircle className="w-3 h-3" /> Duplicate
+        <AlertCircle className="w-3 h-3" /> {t('docs.status_duplicate')}
       </span>
     )
   return (
     <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-medium flex items-center gap-1">
-      <XCircle className="w-3 h-3" /> Error
+      <XCircle className="w-3 h-3" /> {t('docs.status_error')}
     </span>
   )
 }
 
-export default function DocumentsPage() {
+export default function DocumentsPage({ onOpenSidebar }) {
+  const { t } = useTranslation()
   const [queuedFiles, setQueuedFiles] = useState([])   // {id, file, name, status, progress, error, result}
   const [documents, setDocuments] = useState([])
   const [loadingDocs, setLoadingDocs] = useState(true)
@@ -77,7 +80,7 @@ export default function DocumentsPage() {
   const onDrop = useCallback(accepted => {
     const valid = accepted.filter(f => {
       if (f.size > MAX_FILE_SIZE) {
-        alert(`"${f.name}" is too large. Maximum file size is 4 MB.`)
+        alert(t('docs.too_large', { name: f.name }))
         return false
       }
       return true
@@ -94,7 +97,7 @@ export default function DocumentsPage() {
         result: null,
       })),
     ].slice(0, 10))
-  }, [])
+  }, [t])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -145,13 +148,13 @@ export default function DocumentsPage() {
   }
 
   const handleDelete = async (docId, filename) => {
-    if (!window.confirm(`Delete "${filename}"? This will remove all its chunks from the knowledge base.`)) return
+    if (!window.confirm(t('docs.delete_confirm', { name: filename }))) return
     setDeletingId(docId)
     try {
       await deleteDocument(docId)
       setDocuments(prev => prev.filter(d => d.id !== docId))
     } catch {
-      alert('Failed to delete document. Please try again.')
+      alert(t('docs.delete_failed'))
     } finally {
       setDeletingId(null)
     }
@@ -163,14 +166,20 @@ export default function DocumentsPage() {
   return (
     <div className="flex-1 flex flex-col bg-white min-h-0 overflow-y-auto">
       {/* Header */}
-      <div className="shrink-0 px-8 pt-8 pb-6 border-b border-zinc-100">
+      <div className="shrink-0 px-4 sm:px-8 pt-6 sm:pt-8 pb-4 sm:pb-6 border-b border-zinc-100">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center">
+          <button
+            onClick={onOpenSidebar}
+            className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 transition shrink-0"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center shrink-0">
             <FolderOpen className="w-5 h-5 text-orange-500" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-zinc-900">Documents</h1>
-            <p className="text-sm text-zinc-400">Upload and manage your knowledge base</p>
+            <h1 className="text-xl font-semibold text-zinc-900">{t('docs.title')}</h1>
+            <p className="text-sm text-zinc-400">{t('docs.subtitle')}</p>
           </div>
         </div>
       </div>
@@ -180,7 +189,7 @@ export default function DocumentsPage() {
         <div className="lg:w-96 shrink-0 border-b lg:border-b-0 lg:border-r border-zinc-100 flex flex-col p-6 gap-4">
           <h2 className="text-sm font-semibold text-zinc-700 flex items-center gap-2">
             <Upload className="w-4 h-4 text-orange-500" />
-            Upload Documents
+            {t('docs.upload_title')}
           </h2>
 
           {/* Drop zone */}
@@ -196,9 +205,9 @@ export default function DocumentsPage() {
             <input {...getInputProps()} />
             <Upload className={`w-8 h-8 mx-auto mb-2 ${isDragActive ? 'text-orange-500' : 'text-zinc-300'}`} />
             <p className="text-sm font-medium text-zinc-600">
-              {isDragActive ? 'Drop files here' : 'Click or drag & drop'}
+              {isDragActive ? t('docs.drop_active') : t('docs.drop_prompt')}
             </p>
-            <p className="text-xs text-zinc-400 mt-1">PDF · DOCX · TXT · PNG · JPG — max 4 MB each, up to 10 files</p>
+            <p className="text-xs text-zinc-400 mt-1">{t('docs.drop_types')}</p>
           </div>
 
           {/* Queued files list */}
@@ -206,14 +215,14 @@ export default function DocumentsPage() {
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-medium text-zinc-500">
-                  {doneCount}/{queuedFiles.length} uploaded
+                  {t('docs.progress', { done: doneCount, total: queuedFiles.length })}
                 </p>
                 {queuedFiles.some(f => ['done', 'error', 'skipped'].includes(f.status)) && (
                   <button
                     onClick={() => setQueuedFiles(prev => prev.filter(f => f.status === 'queued'))}
                     className="text-xs text-zinc-400 hover:text-zinc-600 transition"
                   >
-                    Clear completed
+                    {t('docs.clear')}
                   </button>
                 )}
               </div>
@@ -253,7 +262,7 @@ export default function DocumentsPage() {
                       )}
                       {item.result?.duplicates_removed > 0 && (
                         <span className="shrink-0 text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">
-                          {item.result.duplicates_removed} dupes removed
+                          {t('docs.dupes', { count: item.result.duplicates_removed })}
                         </span>
                       )}
                     </div>
@@ -268,9 +277,9 @@ export default function DocumentsPage() {
                   className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white py-2.5 rounded-xl text-sm font-medium transition flex items-center justify-center gap-2"
                 >
                   {uploading ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Uploading…</>
+                    <><Loader2 className="w-4 h-4 animate-spin" /> {t('docs.uploading')}</>
                   ) : (
-                    <><Upload className="w-4 h-4" /> Upload {pendingCount} file{pendingCount > 1 ? 's' : ''}</>
+                    <><Upload className="w-4 h-4" /> {t(pendingCount === 1 ? 'docs.upload_btn' : 'docs.upload_btn_plural', { count: pendingCount })}</>
                   )}
                 </button>
               )}
@@ -279,12 +288,12 @@ export default function DocumentsPage() {
 
           {/* Info box */}
           <div className="mt-auto rounded-xl bg-zinc-50 border border-zinc-100 p-4">
-            <p className="text-xs font-medium text-zinc-600 mb-1">How it works</p>
+            <p className="text-xs font-medium text-zinc-600 mb-1">{t('docs.how_title')}</p>
             <ul className="text-xs text-zinc-400 space-y-1 leading-relaxed">
-              <li>• Text is extracted (OCR for scanned / image pages)</li>
-              <li>• Duplicate content is automatically removed</li>
-              <li>• Chunks are indexed for semantic search</li>
-              <li>• Attach documents to a chat to answer questions from them</li>
+              <li>• {t('docs.how1')}</li>
+              <li>• {t('docs.how2')}</li>
+              <li>• {t('docs.how3')}</li>
+              <li>• {t('docs.how4')}</li>
             </ul>
           </div>
         </div>
@@ -294,7 +303,7 @@ export default function DocumentsPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-zinc-700 flex items-center gap-2">
               <FileText className="w-4 h-4 text-zinc-400" />
-              Your Documents
+              {t('docs.library_title')}
               {documents.length > 0 && (
                 <span className="px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500 text-xs font-medium">
                   {documents.length}
@@ -306,7 +315,7 @@ export default function DocumentsPage() {
                 onClick={fetchDocs}
                 className="text-xs text-zinc-400 hover:text-zinc-600 transition"
               >
-                Refresh
+                {t('docs.refresh')}
               </button>
             )}
           </div>
@@ -318,8 +327,8 @@ export default function DocumentsPage() {
           ) : documents.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center py-16">
               <FileText className="w-10 h-10 text-zinc-200" />
-              <p className="text-sm text-zinc-400">No documents yet.</p>
-              <p className="text-xs text-zinc-300">Upload your first document to get started.</p>
+              <p className="text-sm text-zinc-400">{t('docs.empty')}</p>
+              <p className="text-xs text-zinc-300">{t('docs.empty_hint')}</p>
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto">
@@ -340,7 +349,7 @@ export default function DocumentsPage() {
                           <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${bg} ${icon}`}>
                             {label}
                           </span>
-                          <span className="text-[11px] text-zinc-400">{doc.chunk_count} chunks</span>
+                          <span className="text-[11px] text-zinc-400">{t('docs.chunks', { count: doc.chunk_count })}</span>
                           <span className="text-[11px] text-zinc-300">·</span>
                           <span className="text-[11px] text-zinc-400">{formatDate(doc.uploaded_at)}</span>
                         </div>

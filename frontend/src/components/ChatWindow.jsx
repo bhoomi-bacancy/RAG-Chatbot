@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { ArrowUp, Paperclip, X, Loader2, Sparkles, MessageSquare, FileText, ChevronDown, ImagePlus } from 'lucide-react'
+import { ArrowUp, Paperclip, X, Loader2, Sparkles, MessageSquare, FileText, ChevronDown, ImagePlus, Menu } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import i18n from '../i18n'
-import { streamChat, getChat, createChat, uploadDocument, renameChat, getConfiguredProviders, getMyProviderKeys, deleteProviderKey } from '../api/client'
+import { streamChat, getChat, createChat, uploadDocument, renameChat, getConfiguredProviders, getMyProviderKeys, deleteProviderKey, translateMessages } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import MessageBubble from './MessageBubble'
 import ModelPickerModal, { MODELS, PROVIDERS } from './ModelPickerModal'
 import ConnectProviderModal from './ConnectProviderModal'
+import VoiceButton from './VoiceButton'
 
 let msgId = 0
 const nextId = () => ++msgId
@@ -58,7 +59,7 @@ function AttachmentChip({ name, size, onRemove }) {
   )
 }
 
-export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onOpenDocuments, freshlyConnectedProvider }) {
+export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onOpenDocuments, freshlyConnectedProvider, onOpenSidebar }) {
   const { user, updateUser } = useAuth()
   const { t } = useTranslation()
   const [messages, setMessages]           = useState([])
@@ -85,9 +86,52 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
   const lastUserMsgRef = useRef(null)   // ref to last user message element
   const prevLengthRef  = useRef(0)      // tracks message count for detecting new pairs
   const chatsRef       = useRef(chats)  // always-current chats list for use inside callbacks
+  const messagesRef    = useRef([])     // always-current messages list for language-change effect
+  const prevLangRef    = useRef(i18n.language)
+  const originalMsgsRef = useRef({})   // { id: original_content } — source of truth for re-translation
 
-  // Keep chatsRef current so callbacks always see the latest titles
+  // Keep chatsRef and messagesRef current so callbacks always see the latest state
   useEffect(() => { chatsRef.current = chats }, [chats])
+  useEffect(() => { messagesRef.current = messages }, [messages])
+
+  // Re-translate existing assistant messages when the user switches language
+  useEffect(() => {
+    const prevLang = prevLangRef.current
+    const newLang = i18n.language
+    if (prevLang === newLang) return
+    prevLangRef.current = newLang
+
+    const msgs = messagesRef.current
+    const assistantMsgs = msgs.filter(m => m.role === 'assistant' && m.content && !m.streaming)
+    if (!assistantMsgs.length) return
+
+    // Ensure every visible message has its original saved (in case it was generated in-session)
+    assistantMsgs.forEach(m => {
+      if (!originalMsgsRef.current[m.id]) originalMsgsRef.current[m.id] = m.content
+    })
+
+    if (newLang === 'en') {
+      // Restore originals instead of translating back
+      setMessages(prev => prev.map(m =>
+        m.role === 'assistant' && originalMsgsRef.current[m.id]
+          ? { ...m, content: originalMsgsRef.current[m.id] }
+          : m
+      ))
+      return
+    }
+
+    // Always translate from originals so En→Hi→Es stays accurate
+    translateMessages(
+      assistantMsgs.map(m => originalMsgsRef.current[m.id] || m.content),
+      newLang,
+    ).then(({ data }) => {
+      const { translations } = data
+      if (!Array.isArray(translations) || translations.length !== assistantMsgs.length) return
+      const idMap = {}
+      assistantMsgs.forEach((m, i) => { idMap[m.id] = translations[i] })
+      setMessages(prev => prev.map(m => idMap[m.id] !== undefined ? { ...m, content: idMap[m.id] } : m))
+    }).catch(() => {})
+  }, [i18n.language])
 
   // If Google OAuth just completed, refresh keys from backend
   useEffect(() => {
@@ -118,15 +162,33 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
     if (skipReloadRef.current) { skipReloadRef.current = false; return }
     setLoadingChat(true)
     getChat(chatId)
-      .then(({ data }) =>
-        setMessages(
-          (data.messages || []).map(m => ({
-            id: nextId(), role: m.role, content: m.content,
-            sources: [], confidence: undefined, streaming: false,
-            attachments: m.attachments || [],
-          }))
-        )
-      )
+      .then(({ data }) => {
+        const loaded = (data.messages || []).map(m => ({
+          id: nextId(), role: m.role, content: m.content,
+          sources: [], confidence: undefined, streaming: false,
+          attachments: m.attachments || [],
+        }))
+        // Store server content as originals (server returns English by default)
+        loaded.forEach(m => {
+          if (m.role === 'assistant' && m.content) originalMsgsRef.current[m.id] = m.content
+        })
+        setMessages(loaded)
+        // Translate on load when language is already non-English
+        const lang = i18n.language
+        if (lang !== 'en') {
+          const assistantMsgs = loaded.filter(m => m.role === 'assistant' && m.content)
+          if (assistantMsgs.length) {
+            translateMessages(assistantMsgs.map(m => m.content), lang)
+              .then(({ data: tData }) => {
+                if (!Array.isArray(tData.translations) || tData.translations.length !== assistantMsgs.length) return
+                const idMap = {}
+                assistantMsgs.forEach((m, i) => { idMap[m.id] = tData.translations[i] })
+                setMessages(prev => prev.map(m => idMap[m.id] !== undefined ? { ...m, content: idMap[m.id] } : m))
+              })
+              .catch(() => {})
+          }
+        }
+      })
       .catch(() => setMessages([]))
       .finally(() => setLoadingChat(false))
   }, [chatId])
@@ -241,9 +303,13 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
               m.id === assistantId ? { ...m, content: m.content + token } : m
             )),
           onDone: confidence => {
-            setMessages(prev => prev.map(m =>
-              m.id === assistantId ? { ...m, confidence, streaming: false } : m
-            ))
+            setMessages(prev => prev.map(m => {
+              if (m.id === assistantId) {
+                if (m.content && !originalMsgsRef.current[m.id]) originalMsgsRef.current[m.id] = m.content
+                return { ...m, confidence, streaming: false }
+              }
+              return m
+            }))
             setStreaming(false)
             updateUser({ daily_usage: (user?.daily_usage || 0) + 1 })
           },
@@ -293,9 +359,14 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
               m.id === assistantMsgId ? { ...m, content: m.content + token } : m
             )),
           onDone: confidence => {
-            setMessages(prev => prev.map(m =>
-              m.id === assistantMsgId ? { ...m, confidence, streaming: false } : m
-            ))
+            setMessages(prev => prev.map(m => {
+              if (m.id === assistantMsgId) {
+                // Regenerated content becomes the new original
+                if (m.content) originalMsgsRef.current[m.id] = m.content
+                return { ...m, confidence, streaming: false }
+              }
+              return m
+            }))
             setStreaming(false)
           },
           onError: err => {
@@ -404,33 +475,76 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
     t('chat.suggestions.list'),
   ]
 
-  const barProps = { input, streaming, attachedFiles, removeFile, fileInputRef, handleFileChange, attachedImages, removeImage, imageInputRef, handleImageChange, handleTextareaChange, handleKeyDown, sendMessage, textareaRef, selectedModel, onOpenModelPicker: handleOpenModelPicker, t }
+  const handleVoiceUserTranscript = text => {
+    if (!text?.trim()) return
+    setMessages(prev => [...prev, { id: nextId(), role: 'user',      content: text, sources: [], streaming: false, attachments: [] }])
+  }
+  const handleVoiceAssistantTranscript = text => {
+    if (!text?.trim()) return
+    setMessages(prev => [...prev, { id: nextId(), role: 'assistant', content: text, sources: [], streaming: false, attachments: [] }])
+  }
+
+  const barProps = { input, streaming, attachedFiles, removeFile, fileInputRef, handleFileChange, attachedImages, removeImage, imageInputRef, handleImageChange, handleTextareaChange, handleKeyDown, sendMessage, textareaRef, selectedModel, onOpenModelPicker: handleOpenModelPicker, t, language: i18n.language, onVoiceUserTranscript: handleVoiceUserTranscript, onVoiceAssistantTranscript: handleVoiceAssistantTranscript }
 
   /* ── Welcome screen ─────────────────────────────────────────────────────── */
   if (!chatId && messages.length === 0) {
     return (
-      <div className="flex-1 flex flex-col bg-white min-h-0">
-        <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4">
-          <div className="text-center">
-            <div className="w-14 h-14 rounded-full bg-orange-500 flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="w-7 h-7 text-white" />
+      <div className="flex-1 flex flex-col bg-white min-h-0 relative overflow-hidden">
+
+        {/* Mobile header */}
+        <div className="md:hidden shrink-0 flex items-center px-4 py-3 border-b border-zinc-100 bg-white relative z-10">
+          <button
+            onClick={onOpenSidebar}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 transition"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* ── Drifting background orbs ── */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-orange-100 opacity-50 blur-3xl animate-orb-1" />
+          <div className="absolute -bottom-24 -right-24 w-80 h-80 rounded-full bg-amber-100 opacity-40 blur-3xl animate-orb-2" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-orange-50 opacity-60 blur-2xl animate-orb-3" />
+        </div>
+
+        <div className="relative flex-1 flex flex-col items-center justify-center gap-5 sm:gap-8 px-4">
+
+          {/* ── Animated icon ── */}
+          <div className="anim-fade-up-0">
+            <div className="relative mx-auto w-16 h-16">
+              {/* Ping ring */}
+              <span className="absolute inset-0 rounded-2xl bg-orange-400 opacity-25 animate-ping" style={{ animationDuration: '2.2s' }} />
+              {/* Icon */}
+              <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-200 animate-float-bob">
+                <Sparkles className="w-8 h-8 text-white" />
+              </div>
             </div>
-            <h1 className="text-2xl font-semibold text-zinc-900">{t('chat.greeting')}</h1>
-            <p className="text-sm text-zinc-500 mt-2 max-w-sm">
+          </div>
+
+          {/* ── Greeting text ── */}
+          <div className="text-center anim-fade-up-1">
+            <h1 className="text-xl sm:text-2xl font-semibold text-zinc-900">{t('chat.greeting')}</h1>
+            <p className="text-sm text-zinc-500 mt-2 max-w-sm leading-relaxed">
               {t('chat.greetingSubtitle')}
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-2 w-full max-w-lg">
+
+          {/* ── Suggestion cards ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-lg px-2">
             {SUGGESTIONS.map((s, i) => (
               <button
                 key={i}
                 onClick={() => { setInput(s); textareaRef.current?.focus() }}
-                className="text-left px-4 py-3 rounded-xl border border-zinc-200 text-sm text-zinc-600 hover:border-zinc-400 hover:bg-zinc-50 hover:text-zinc-900 transition-all leading-snug"
+                className={`text-left px-4 py-3.5 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-600
+                  hover:border-orange-300 hover:bg-orange-50/70 hover:text-zinc-900 hover:-translate-y-0.5 hover:shadow-sm
+                  transition-all duration-200 leading-snug anim-fade-up-${i + 2}`}
               >
                 {s}
               </button>
             ))}
           </div>
+
         </div>
         <InputBar {...barProps} />
         {showModelPicker && (
@@ -458,6 +572,15 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
 
   return (
     <div className="flex-1 flex flex-col bg-white min-h-0">
+      {/* Mobile header */}
+      <div className="md:hidden shrink-0 flex items-center px-4 py-3 border-b border-zinc-100 bg-white">
+        <button
+          onClick={onOpenSidebar}
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 transition"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      </div>
       <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0">
         {loadingChat ? (
           <div className="flex items-center justify-center h-full">
@@ -515,7 +638,7 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
 }
 
 /* ── InputBar ─────────────────────────────────────────────────────────────── */
-function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, handleFileChange, attachedImages, removeImage, imageInputRef, handleImageChange, handleTextareaChange, handleKeyDown, sendMessage, textareaRef, selectedModel, onOpenModelPicker, t }) {
+function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, handleFileChange, attachedImages, removeImage, imageInputRef, handleImageChange, handleTextareaChange, handleKeyDown, sendMessage, textareaRef, selectedModel, onOpenModelPicker, t, language, onVoiceUserTranscript, onVoiceAssistantTranscript }) {
   const modelMeta  = MODELS.find(m => m.id === selectedModel)
   const modelLabel = modelMeta?.name ?? selectedModel
   const visionWarning = attachedImages.length > 0 && modelMeta?.vision === false
@@ -606,11 +729,18 @@ function InputBar({ input, streaming, attachedFiles, removeFile, fileInputRef, h
                 title={t('chat.selectModel')}
                 className="flex items-center gap-1 h-7 px-2 rounded-lg text-xs text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 transition disabled:opacity-30 disabled:cursor-not-allowed font-medium"
               >
-                <span className="truncate max-w-[120px]">{modelLabel}</span>
+                <span className="truncate max-w-[70px] sm:max-w-[120px]">{modelLabel}</span>
                 <ChevronDown className="w-3 h-3 shrink-0" />
               </button>
 
-              {streaming && <span className="text-xs text-zinc-400">{t('chat.generating')}</span>}
+              <VoiceButton
+                disabled={streaming}
+                language={language}
+                onUserTranscript={onVoiceUserTranscript}
+                onAssistantTranscript={onVoiceAssistantTranscript}
+              />
+
+              {streaming && <span className="hidden sm:inline text-xs text-zinc-400">{t('chat.generating')}</span>}
             </div>
 
             <button

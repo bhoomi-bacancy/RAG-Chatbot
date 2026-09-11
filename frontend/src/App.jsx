@@ -133,6 +133,7 @@ function AppShell() {
   const [renderKey,     setRenderKey]     = useState('new')
   const [chats,         setChats]         = useState([])
   const [view,          setView]          = useState('chat')   // 'chat' | 'documents'
+  const [sidebarOpen,   setSidebarOpen]   = useState(false)
   const [resetToken,        setResetToken]        = useState(null)
   const [oauthConnected,    setOauthConnected]    = useState(null)   // e.g. 'google'
   const [oauthError,        setOauthError]        = useState(null)
@@ -175,6 +176,13 @@ function AppShell() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-white">
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       <Sidebar
         currentChatId={currentChatId}
         chats={chats}
@@ -183,12 +191,14 @@ function AppShell() {
         onNewChat={selectChat}
         currentView={view}
         onSetView={setView}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
 
       {view === 'documents' ? (
-        <DocumentsPage />
+        <DocumentsPage onOpenSidebar={() => setSidebarOpen(true)} />
       ) : view === 'image-edit' ? (
-        <ImageEditPage />
+        <ImageEditPage onOpenSidebar={() => setSidebarOpen(true)} />
       ) : (
         <ChatWindow
           chatId={currentChatId}
@@ -198,6 +208,7 @@ function AppShell() {
           setChats={setChats}
           onOpenDocuments={() => setView('documents')}
           freshlyConnectedProvider={oauthConnected}
+          onOpenSidebar={() => setSidebarOpen(true)}
         />
       )}
 

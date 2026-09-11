@@ -288,7 +288,7 @@ function FolderSection({ folder, chats, activeId, onSelectChat, onDeleteChat, on
 /* ── Sidebar ──────────────────────────────────────────────────────────────── */
 export default function Sidebar({
   currentChatId, chats, setChats, onSelectChat, onNewChat,
-  currentView, onSetView,
+  currentView, onSetView, isOpen, onClose,
 }) {
   const { user, logout, updateUser } = useAuth()
   const { t } = useTranslation()
@@ -300,6 +300,11 @@ export default function Sidebar({
   const [avatarUploading, setAvatarUploading] = useState(false)
   const avatarInputRef = useRef(null)
   const newFolderRef   = useRef(null)
+
+  const handleChatSelect = id => {
+    onSelectChat(id)
+    onClose?.()
+  }
 
   useEffect(() => {
     listChats()
@@ -328,6 +333,7 @@ export default function Sidebar({
       setChats(prev => [data, ...prev])
       onNewChat(data.id)
       onSetView?.('chat')
+      onClose?.()
     } catch { } finally { setCreatingChat(false) }
   }
 
@@ -347,15 +353,24 @@ export default function Sidebar({
   }
 
   /* ── folder handlers ── */
+  const folderSubmitting = useRef(false)
   const handleCreateFolder = async () => {
+    if (folderSubmitting.current) return
     const name = newFolderName.trim()
     setCreatingFolder(false)
     setNewFolderName('')
     if (!name) return
+    folderSubmitting.current = true
+    const tempId = `temp_${Date.now()}`
+    setFolders(prev => [...prev, { id: tempId, name, created_at: new Date().toISOString() }])
     try {
       const { data } = await apiCreateFolder(name)
-      setFolders(prev => [...prev, data])
-    } catch { }
+      setFolders(prev => prev.map(f => f.id === tempId ? data : f))
+    } catch {
+      setFolders(prev => prev.filter(f => f.id !== tempId))
+    } finally {
+      folderSubmitting.current = false
+    }
   }
 
   const handleRenameFolder = async (id, name) => {
@@ -387,10 +402,11 @@ export default function Sidebar({
     setAvatarUploading(true)
     try {
       const dataUrl = await resizeImage(file, 200)
-      await apiUpdateAvatar(dataUrl)
-      updateUser({ avatar_url: dataUrl })
-    } catch { }
-    finally {
+      updateUser({ avatar_url: dataUrl })   // show immediately
+      apiUpdateAvatar(dataUrl).catch(() => {}) // save in background
+    } catch (err) {
+      console.error('Avatar resize failed:', err)
+    } finally {
       setAvatarUploading(false)
       e.target.value = ''
     }
@@ -415,7 +431,7 @@ export default function Sidebar({
   }
 
   return (
-    <div className="w-64 bg-zinc-950 flex flex-col h-full border-r border-zinc-800 flex-shrink-0">
+    <div className={`fixed inset-y-0 left-0 z-40 w-64 bg-zinc-950 flex flex-col h-full border-r border-zinc-800 flex-shrink-0 transition-transform duration-300 ease-in-out md:static md:z-auto md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
 
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-zinc-800">
@@ -425,31 +441,39 @@ export default function Sidebar({
           </div>
           <span className="text-white font-semibold text-sm tracking-tight">Inkira</span>
         </div>
-        {currentView === 'chat' && (
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setCreatingFolder(true)}
-              title="New folder"
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition"
-            >
-              <FolderPlus className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleNewChat}
-              disabled={creatingChat}
-              title={t('sidebar.newChat')}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition disabled:opacity-50"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-1">
+          {currentView === 'chat' && (
+            <>
+              <button
+                onClick={() => setCreatingFolder(true)}
+                title="New folder"
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition"
+              >
+                <FolderPlus className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleNewChat}
+                disabled={creatingChat}
+                title={t('sidebar.newChat')}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition disabled:opacity-50"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </>
+          )}
+          <button
+            onClick={onClose}
+            className="md:hidden w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Nav tabs */}
       <div className="flex flex-col gap-1 px-2 py-2 border-b border-zinc-800">
         <button
-          onClick={() => onSetView?.('chat')}
+          onClick={() => { onSetView?.('chat'); onClose?.() }}
           className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition w-full text-left ${
             currentView === 'chat'
               ? 'bg-zinc-800 text-white'
@@ -460,7 +484,7 @@ export default function Sidebar({
           {t('sidebar.chats')}
         </button>
         <button
-          onClick={() => onSetView?.('documents')}
+          onClick={() => { onSetView?.('documents'); onClose?.() }}
           className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition w-full text-left ${
             currentView === 'documents'
               ? 'bg-zinc-800 text-white'
@@ -471,7 +495,7 @@ export default function Sidebar({
           {t('sidebar.documents')}
         </button>
         <button
-          onClick={() => onSetView?.('image-edit')}
+          onClick={() => { onSetView?.('image-edit'); onClose?.() }}
           className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition w-full text-left ${
             currentView === 'image-edit'
               ? 'bg-zinc-800 text-white'
@@ -520,7 +544,7 @@ export default function Sidebar({
                   folder={folder}
                   chats={folderedMap[folder.id] || []}
                   activeId={currentChatId}
-                  onSelectChat={onSelectChat}
+                  onSelectChat={handleChatSelect}
                   onDeleteChat={handleDelete}
                   onRenameChat={handleRename}
                   onMoveChat={handleMoveChat}
@@ -552,7 +576,7 @@ export default function Sidebar({
                             key={chat.id}
                             chat={chat}
                             isActive={chat.id === currentChatId}
-                            onSelect={onSelectChat}
+                            onSelect={handleChatSelect}
                             onDelete={handleDelete}
                             onRename={handleRename}
                             onMoveToFolder={handleMoveChat}
