@@ -25,18 +25,19 @@ def _language_instruction(language: Optional[str]) -> str:
 def _system_with_context(language: Optional[str]) -> str:
     return f"""You are MedAssist, an intelligent medical Q&A assistant.
 
-The user has uploaded documents. Answer using the retrieved context below.
-- Cite sources using the document filename in square brackets, e.g. [casestudy.pdf].
-- Be clear, concise, and well-structured.
-- If the answer is not in the context, say so and answer from your general knowledge if possible.
+Answer ONLY using the retrieved document context provided below. Do not use outside knowledge.
+- Base every statement on the retrieved context. Cite the source filename in square brackets, e.g. [report.pdf].
+- If the context does not contain enough information to answer, clearly state: "I could not find this information in the uploaded document(s)." Do NOT guess or invent medical facts.
+- Be clear, concise, and well-structured. Use bullet points or numbered lists where helpful.
 - {_language_instruction(language)}"""
 
 def _system_general(language: Optional[str]) -> str:
     return f"""You are MedAssist, a helpful AI assistant for medical documents.
 
-No documents have been uploaded yet. Answer the user's question using your general knowledge.
-- Be clear, concise, and well-structured.
-- If the user uploads documents, you will be able to give document-specific answers.
+No documents have been uploaded or found yet.
+- Let the user know no document context is available and ask them to upload a document first.
+- You may answer very general, non-clinical questions from your knowledge, but always recommend the user upload their medical document for accurate, document-specific answers.
+- Never invent or guess medical facts, diagnoses, or treatment details.
 - {_language_instruction(language)}"""
 
 
@@ -122,8 +123,8 @@ def _openai_to_gemini_parts(content):
 
 # ── Message builders ───────────────────────────────────────────────────────────
 
-_CHUNK_CHAR_LIMIT = 800      # default per-chunk cap
-_SUMMARY_CHAR_LIMIT = 1500   # larger cap for summarisation queries
+_CHUNK_CHAR_LIMIT = 1500     # default per-chunk cap
+_SUMMARY_CHAR_LIMIT = 3000   # larger cap for summarisation queries
 _SUMMARY_TRIGGERS = {
     "summarize", "summary", "summarise", "overview", "brief", "briefly",
     "describe", "explain", "what is this", "what does this", "tell me about",
@@ -139,7 +140,7 @@ def _is_summary_query(query: str) -> bool:
 
 def build_context(chunks: List[dict], query: str = "") -> str:
     is_summary = _is_summary_query(query)
-    max_chunks  = 10 if is_summary else 4
+    max_chunks  = 15 if is_summary else 8
     char_limit  = _SUMMARY_CHAR_LIMIT if is_summary else _CHUNK_CHAR_LIMIT
     parts = []
     for chunk in chunks[:max_chunks]:

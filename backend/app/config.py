@@ -5,9 +5,9 @@ from functools import lru_cache
 class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "compound-beta-mini"
-    top_k: int = 8
-    chunk_size: int = 300
-    chunk_overlap: int = 50
+    top_k: int = 15
+    chunk_size: int = 500
+    chunk_overlap: int = 100
     jwt_secret: str = "inkira-secret-key-change-in-prod"
     jwt_algorithm: str = "HS256"
     jwt_expire_days: int = 7
@@ -39,9 +39,20 @@ class Settings(BaseSettings):
     # fal.ai — image editing via Qwen LoRA
     fal_api_key: str = ""
 
+    # HuggingFace — free image generation (FLUX.1-schnell)
+    hf_token: str = ""
+
     # Google OAuth credentials (for "Sign in with Google")
     google_client_id: str = ""
     google_client_secret: str = ""
+
+    # Facebook OAuth credentials (for "Sign in with Facebook" / Instagram)
+    facebook_app_id: str = ""
+    facebook_app_secret: str = ""
+
+    # LinkedIn OAuth credentials
+    linkedin_client_id: str = ""
+    linkedin_client_secret: str = ""
 
 
 @lru_cache()
