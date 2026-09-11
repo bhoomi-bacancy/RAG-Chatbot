@@ -7,7 +7,7 @@ class DocumentMetadata(BaseModel):
     filename: str
     file_type: str
     chunk_count: int
-    uploaded_at: str
+    uploaded_at: Optional[str] = None
 
 
 class ChatMessage(BaseModel):
@@ -141,3 +141,24 @@ class MoveChatFolderRequest(BaseModel):
 
 class AvatarUpdateRequest(BaseModel):
     avatar_url: str
+
+
+class GoogleAuthRequest(BaseModel):
+    access_token: str
+
+class FacebookAuthRequest(BaseModel):
+    access_token: str
+
+class InstagramAuthRequest(BaseModel):
+    access_token: str  # Meta/Facebook access token
+
+class LinkedInAuthRequest(BaseModel):
+    code: str
+    redirect_uri: str
+
+class TranslateRequest(BaseModel):
+    texts: List[str]
+    language: str  # BCP-47 code: 'en', 'hi', 'es', 'fr', 'de', 'ar'
+
+class TranslateResponse(BaseModel):
+    translations: List[str]

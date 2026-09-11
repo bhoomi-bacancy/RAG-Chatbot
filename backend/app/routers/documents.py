@@ -303,16 +303,16 @@ async def list_documents(current_user: dict = Depends(get_current_user)):
         sb.table("documents")
         .select("*")
         .eq("user_id", current_user["id"])
-        .order("uploaded_at", desc=True)
+        .order("created_at", desc=True)
         .execute()
     )
     return [
         DocumentMetadata(
             id=doc["id"],
             filename=doc["filename"],
-            file_type=doc["file_type"],
-            chunk_count=doc["chunks_created"],
-            uploaded_at=doc["uploaded_at"],
+            file_type=doc.get("file_type", ""),
+            chunk_count=doc.get("chunks_created", 0),
+            uploaded_at=doc.get("uploaded_at") or doc.get("created_at"),
         )
         for doc in (result.data or [])
     ]

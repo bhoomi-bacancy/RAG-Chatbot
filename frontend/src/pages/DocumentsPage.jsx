@@ -64,14 +64,19 @@ export default function DocumentsPage({ onOpenSidebar }) {
   const [queuedFiles, setQueuedFiles] = useState([])   // {id, file, name, status, progress, error, result}
   const [documents, setDocuments] = useState([])
   const [loadingDocs, setLoadingDocs] = useState(true)
+  const [loadError, setLoadError] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
 
   const fetchDocs = useCallback(() => {
     setLoadingDocs(true)
+    setLoadError(null)
     listDocuments()
       .then(({ data }) => setDocuments(Array.isArray(data) ? data : []))
-      .catch(() => {})
+      .catch(err => {
+        const msg = err.response?.data?.detail || err.message || 'Failed to load documents'
+        setLoadError(msg)
+      })
       .finally(() => setLoadingDocs(false))
   }, [])
 
@@ -323,6 +328,17 @@ export default function DocumentsPage({ onOpenSidebar }) {
           {loadingDocs ? (
             <div className="flex-1 flex items-center justify-center">
               <Loader2 className="w-6 h-6 text-orange-400 animate-spin" />
+            </div>
+          ) : loadError ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center py-16">
+              <AlertCircle className="w-10 h-10 text-red-300" />
+              <p className="text-sm text-red-500">{loadError}</p>
+              <button
+                onClick={fetchDocs}
+                className="text-xs text-orange-500 hover:text-orange-600 hover:underline transition"
+              >
+                Try again
+              </button>
             </div>
           ) : documents.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center py-16">
