@@ -4,7 +4,7 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     groq_api_key: str = ""
-    groq_model: str = "compound-beta-mini"
+    groq_model: str = "llama-3.1-8b-instant"
     top_k: int = 15
     chunk_size: int = 500
     chunk_overlap: int = 100
