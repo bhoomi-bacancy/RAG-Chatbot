@@ -224,11 +224,13 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
 
   /* ── Send message ───────────────────────────────────────────────────────── */
   const sendMessage = useCallback(async text => {
-    if (!text.trim() || isSendingRef.current) return
+    const hasFiles = attachedFiles.length > 0 || attachedImages.length > 0
+    if (!text.trim() && !hasFiles) return
+    if (isSendingRef.current) return
     isSendingRef.current = true
 
     // ── 1. Instant UI feedback — clear input and show spinner immediately ──
-    const trimmed = text.trim()
+    const trimmed = text.trim() || (attachedFiles.length > 0 ? 'Please summarize and analyze this document.' : 'What is in this image?')
     const snapshot = attachedFiles.slice()
     const attachments = snapshot.map(f => ({ name: f.name, size: f.file?.size }))
     const imageSnapshot = attachedImages.slice()
