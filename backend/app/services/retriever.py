@@ -21,6 +21,11 @@ def retrieve_chunks(
     user_id: Optional[str] = None,
     top_k: int = None,
 ) -> List[dict]:
+    # Never search when no specific documents are in scope — searching all user
+    # documents globally pollutes general conversations with irrelevant context.
+    if not document_ids:
+        return []
+
     top_k = top_k or settings.top_k
 
     # For summarisation-type queries fetch more chunks so the LLM has enough context
@@ -37,9 +42,7 @@ def retrieve_chunks(
     # When explicit document_ids are provided but FTS finds nothing (e.g.
     # "summarize this" has no keyword overlap with chunk content), fall back to
     # fetching the first N chunks directly so the LLM always sees the document.
-    # Do NOT fall back when document_ids is None — that would inject random
-    # document chunks into general conversations and produce wrong answers.
-    if not results and document_ids:
+    if not results:
         results = get_fallback_chunks(user_id, document_ids, effective_k)
 
     return [
