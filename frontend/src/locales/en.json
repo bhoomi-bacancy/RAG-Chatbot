@@ -76,5 +76,36 @@
   "toast": {
     "connected": "connected successfully!",
     "connectError": "Could not connect {{provider}}. Please try again."
+  },
+  "docs": {
+    "title": "Documents",
+    "subtitle": "Upload and manage your knowledge base",
+    "upload_title": "Upload Documents",
+    "drop_prompt": "Click or drag & drop",
+    "drop_active": "Drop files here",
+    "drop_types": "PDF · DOCX · TXT · JPG — max 4 MB each, up to 10 files",
+    "progress": "{{done}}/{{total}} uploaded",
+    "clear": "Clear completed",
+    "uploading": "Uploading…",
+    "upload_btn": "Upload {{count}} file",
+    "upload_btn_plural": "Upload {{count}} files",
+    "how_title": "How it works",
+    "how1": "Text is extracted (OCR for scanned / image pages)",
+    "how2": "Duplicate content is automatically removed",
+    "how3": "Chunks are indexed for semantic search",
+    "how4": "Attach documents to a chat to answer questions from them",
+    "library_title": "Your Documents",
+    "refresh": "Refresh",
+    "empty": "No documents yet.",
+    "empty_hint": "Upload your first document to get started.",
+    "chunks": "{{count}} chunks",
+    "dupes": "{{count}} dupes removed",
+    "too_large": "\"{{name}}\" is too large. Maximum file size is 4 MB.",
+    "delete_confirm": "Delete \"{{name}}\"? This will remove all its chunks from the knowledge base.",
+    "delete_failed": "Failed to delete document. Please try again.",
+    "status_queued": "Queued",
+    "status_done": "Done",
+    "status_duplicate": "Duplicate",
+    "status_error": "Error"
   }
 }

@@ -111,7 +111,6 @@ export default function DocumentsPage({ onOpenSidebar }) {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'application/msword': ['.doc'],
       'text/plain': ['.txt'],
-      'image/png': ['.png'],
       'image/jpeg': ['.jpg', '.jpeg'],
     },
     multiple: true,

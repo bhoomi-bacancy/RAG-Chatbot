@@ -16,8 +16,8 @@ from app.supabase_client import get_supabase
 router = APIRouter()
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt"}
-BATCH_ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt", ".png", ".jpg", ".jpeg"}
-IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg"}
+BATCH_ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt", ".jpg", ".jpeg"}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg"}
 MAX_FILE_SIZE = 4 * 1024 * 1024  # 4 MB — Vercel serverless hard limit is 4.5 MB
 MAX_BATCH_FILES = 10
 

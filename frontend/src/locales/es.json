@@ -76,5 +76,36 @@
   "toast": {
     "connected": "¡conectado exitosamente!",
     "connectError": "No se pudo conectar {{provider}}. Por favor intenta de nuevo."
+  },
+  "docs": {
+    "title": "Documentos",
+    "subtitle": "Sube y gestiona tu base de conocimiento",
+    "upload_title": "Subir Documentos",
+    "drop_prompt": "Haz clic o arrastra y suelta",
+    "drop_active": "Suelta los archivos aquí",
+    "drop_types": "PDF · DOCX · TXT · JPG — máx 4 MB cada uno, hasta 10 archivos",
+    "progress": "{{done}}/{{total}} subidos",
+    "clear": "Limpiar completados",
+    "uploading": "Subiendo…",
+    "upload_btn": "Subir {{count}} archivo",
+    "upload_btn_plural": "Subir {{count}} archivos",
+    "how_title": "Cómo funciona",
+    "how1": "Se extrae el texto (OCR para páginas escaneadas)",
+    "how2": "El contenido duplicado se elimina automáticamente",
+    "how3": "Los fragmentos se indexan para búsqueda semántica",
+    "how4": "Adjunta documentos a un chat para responder preguntas",
+    "library_title": "Tus Documentos",
+    "refresh": "Actualizar",
+    "empty": "Sin documentos aún.",
+    "empty_hint": "Sube tu primer documento para comenzar.",
+    "chunks": "{{count}} fragmentos",
+    "dupes": "{{count}} duplicados eliminados",
+    "too_large": "\"{{name}}\" es demasiado grande. El tamaño máximo es 4 MB.",
+    "delete_confirm": "¿Eliminar \"{{name}}\"? Esto borrará todos sus fragmentos.",
+    "delete_failed": "Error al eliminar. Por favor, inténtalo de nuevo.",
+    "status_queued": "En cola",
+    "status_done": "Listo",
+    "status_duplicate": "Duplicado",
+    "status_error": "Error"
   }
 }

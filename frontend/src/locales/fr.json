@@ -76,5 +76,36 @@
   "toast": {
     "connected": "connecté avec succès !",
     "connectError": "Impossible de connecter {{provider}}. Veuillez réessayer."
+  },
+  "docs": {
+    "title": "Documents",
+    "subtitle": "Téléchargez et gérez votre base de connaissances",
+    "upload_title": "Télécharger des Documents",
+    "drop_prompt": "Cliquez ou faites glisser-déposer",
+    "drop_active": "Déposez les fichiers ici",
+    "drop_types": "PDF · DOCX · TXT · JPG — max 4 Mo, jusqu'à 10 fichiers",
+    "progress": "{{done}}/{{total}} téléchargés",
+    "clear": "Effacer les terminés",
+    "uploading": "Téléchargement…",
+    "upload_btn": "Télécharger {{count}} fichier",
+    "upload_btn_plural": "Télécharger {{count}} fichiers",
+    "how_title": "Comment ça fonctionne",
+    "how1": "Le texte est extrait (OCR pour les pages scannées)",
+    "how2": "Le contenu dupliqué est supprimé automatiquement",
+    "how3": "Les fragments sont indexés pour la recherche sémantique",
+    "how4": "Attachez des documents à un chat pour répondre aux questions",
+    "library_title": "Vos Documents",
+    "refresh": "Actualiser",
+    "empty": "Aucun document pour l'instant.",
+    "empty_hint": "Téléchargez votre premier document pour commencer.",
+    "chunks": "{{count}} fragments",
+    "dupes": "{{count}} doublons supprimés",
+    "too_large": "\"{{name}}\" est trop volumineux. Taille maximale : 4 Mo.",
+    "delete_confirm": "Supprimer \"{{name}}\" ? Cela supprimera tous ses fragments.",
+    "delete_failed": "Échec de la suppression. Veuillez réessayer.",
+    "status_queued": "En attente",
+    "status_done": "Terminé",
+    "status_duplicate": "Doublon",
+    "status_error": "Erreur"
   }
 }

@@ -76,5 +76,36 @@
   "toast": {
     "connected": "erfolgreich verbunden!",
     "connectError": "{{provider}} konnte nicht verbunden werden. Bitte versuche es erneut."
+  },
+  "docs": {
+    "title": "Dokumente",
+    "subtitle": "Lade deine Wissensdatenbank hoch und verwalte sie",
+    "upload_title": "Dokumente hochladen",
+    "drop_prompt": "Klicken oder Drag & Drop",
+    "drop_active": "Dateien hier ablegen",
+    "drop_types": "PDF · DOCX · TXT · JPG — max. 4 MB, bis zu 10 Dateien",
+    "progress": "{{done}}/{{total}} hochgeladen",
+    "clear": "Abgeschlossene löschen",
+    "uploading": "Wird hochgeladen…",
+    "upload_btn": "{{count}} Datei hochladen",
+    "upload_btn_plural": "{{count}} Dateien hochladen",
+    "how_title": "So funktioniert es",
+    "how1": "Text wird extrahiert (OCR für gescannte Seiten)",
+    "how2": "Doppelte Inhalte werden automatisch entfernt",
+    "how3": "Abschnitte werden für semantische Suche indiziert",
+    "how4": "Dokumente an Chat anhängen, um Fragen zu beantworten",
+    "library_title": "Deine Dokumente",
+    "refresh": "Aktualisieren",
+    "empty": "Noch keine Dokumente.",
+    "empty_hint": "Lade dein erstes Dokument hoch, um loszulegen.",
+    "chunks": "{{count}} Abschnitte",
+    "dupes": "{{count}} Duplikate entfernt",
+    "too_large": "\"{{name}}\" ist zu groß. Maximale Dateigröße: 4 MB.",
+    "delete_confirm": "\"{{name}}\" löschen? Alle Abschnitte werden entfernt.",
+    "delete_failed": "Dokument konnte nicht gelöscht werden. Bitte versuche es erneut.",
+    "status_queued": "Wartend",
+    "status_done": "Fertig",
+    "status_duplicate": "Duplikat",
+    "status_error": "Fehler"
   }
 }
