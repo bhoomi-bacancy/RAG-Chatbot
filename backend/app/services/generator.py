@@ -44,14 +44,15 @@ No documents have been uploaded yet. Answer the user's question using your gener
 
 def get_provider(model: str) -> str:
     # Groq-namespaced models (groq/, openai/gpt-oss-*, qwen/, etc.) all go via Groq API
-    if model.startswith("groq/"):     return "groq"
-    if model.startswith("openai/"):   return "groq"   # gpt-oss-* are Groq-hosted
-    if model.startswith("qwen/"):     return "groq"
+    if model.startswith("groq/"):       return "groq"
+    if model.startswith("openai/"):     return "groq"   # gpt-oss-* are Groq-hosted
+    if model.startswith("qwen/"):       return "groq"
+    if model.startswith("meta-llama/"): return "groq"
     # User-provided keys for other providers
-    if model.startswith("gpt-"):      return "openai"
-    if model.startswith("claude-"):   return "anthropic"
-    if model.startswith("gemini-"):   return "google"
-    if model.startswith("ollama/"):   return "ollama"
+    if model.startswith("gpt-"):        return "openai"
+    if model.startswith("claude-"):     return "anthropic"
+    if model.startswith("gemini-"):     return "google"
+    if model.startswith("ollama/"):     return "ollama"
     return "groq"
 
 
@@ -60,7 +61,6 @@ def _supports_vision(model: str, provider: str) -> bool:
     if provider == "anthropic": return True   # All Claude 3+ support vision
     if provider == "google":    return True   # All Gemini models support vision
     if provider == "openai":    return True   # GPT-4V and above support vision
-    # Groq-hosted GPT OSS models do NOT support multimodal content (text-only API)
     return False
 
 
@@ -122,16 +122,30 @@ def _openai_to_gemini_parts(content):
 
 # ── Message builders ───────────────────────────────────────────────────────────
 
-# Per-chunk character cap keeps individual chunks from blowing the context window.
-# Groq Compound models have a small context limit; 600 chars/chunk is safe.
-_CHUNK_CHAR_LIMIT = 600
+_CHUNK_CHAR_LIMIT = 800      # default per-chunk cap
+_SUMMARY_CHAR_LIMIT = 1500   # larger cap for summarisation queries
+_SUMMARY_TRIGGERS = {
+    "summarize", "summary", "summarise", "overview", "brief", "briefly",
+    "describe", "explain", "what is this", "what does this", "tell me about",
+    "key points", "main points", "highlights", "outline", "what happened",
+    "what are the", "what is in", "give me",
+}
 
-def build_context(chunks: List[dict]) -> str:
+
+def _is_summary_query(query: str) -> bool:
+    q = query.lower()
+    return any(t in q for t in _SUMMARY_TRIGGERS)
+
+
+def build_context(chunks: List[dict], query: str = "") -> str:
+    is_summary = _is_summary_query(query)
+    max_chunks  = 10 if is_summary else 4
+    char_limit  = _SUMMARY_CHAR_LIMIT if is_summary else _CHUNK_CHAR_LIMIT
     parts = []
-    for chunk in chunks[:3]:   # top-3 chunks only — more than enough for RAG
+    for chunk in chunks[:max_chunks]:
         text = chunk['text']
-        if len(text) > _CHUNK_CHAR_LIMIT:
-            text = text[:_CHUNK_CHAR_LIMIT] + "…"
+        if len(text) > char_limit:
+            text = text[:char_limit] + "…"
         parts.append(f"[{chunk['filename']}, Page {chunk['page_number']}]\n{text}")
     return "\n\n---\n\n".join(parts)
 
@@ -151,17 +165,20 @@ def calculate_confidence(chunks: List[dict]) -> Optional[float]:
 def build_messages(query: str, chunks: List[dict], history: List[dict], language: Optional[str] = None, images: Optional[List[str]] = None) -> List[dict]:
     if chunks:
         system = _system_with_context(language)
-        context = build_context(chunks)
+        context = build_context(chunks, query)
         text_content = f"RETRIEVED CONTEXT:\n\n{context}\n\n---\n\nQUESTION: {query}"
     else:
         system = _system_general(language)
         text_content = query
 
     messages = [{"role": "system", "content": system}]
-    for msg in history[-2:]:
+    # Keep up to 20 recent messages; older ones get tighter truncation to save tokens
+    recent = history[-20:]
+    for i, msg in enumerate(recent):
         content = msg["content"]
-        if len(content) > 400:
-            content = content[:400] + "…"
+        max_len = 800 if i >= len(recent) - 6 else 350
+        if len(content) > max_len:
+            content = content[:max_len] + "…"
         messages.append({"role": msg["role"], "content": content})
 
     # Build last user message — multimodal if images attached
@@ -538,3 +555,42 @@ async def stream_response(
             print(f"[stream] Message persistence failed: {persist_err}")
 
     yield f"data: {json.dumps({'type': 'done', 'confidence': confidence})}\n\n"
+
+
+async def translate_texts(texts: List[str], language: str) -> List[str]:
+    """Translate a batch of texts to the target language using Groq."""
+    if not texts:
+        return []
+    lang_name = _LANGUAGE_NAMES.get(language, 'English')
+    if lang_name == 'English':
+        return texts
+
+    numbered = "\n".join(f"{i + 1}. {t}" for i, t in enumerate(texts))
+    prompt = (
+        f"Translate the following numbered texts to {lang_name}. "
+        f"Return ONLY the translated items in the same numbered format (1. ... 2. ...). "
+        f"Do not add explanations, notes, or change the numbering.\n\n{numbered}"
+    )
+
+    resp = await async_groq_client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.1,
+        max_tokens=4096,
+    )
+    result_text = resp.choices[0].message.content or ""
+
+    translations: List[str] = []
+    for i, original in enumerate(texts):
+        prefix = f"{i + 1}."
+        found = False
+        for line in result_text.splitlines():
+            stripped = line.strip()
+            if stripped.startswith(prefix):
+                translations.append(stripped[len(prefix):].strip())
+                found = True
+                break
+        if not found:
+            translations.append(original)
+
+    return translations
