@@ -46,7 +46,7 @@ async def generate_diagram(
 
     try:
         resp = _client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=settings.groq_model,
             max_tokens=2048,
             temperature=0.2,
             messages=[
