@@ -513,7 +513,7 @@ export default function Sidebar({
               : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
           }`}
         >
-          <GitFork className="w-4 h-4" />
+          <GitFork className="w-4 h-4 text-orange-400" />
           Diagrams
         </button>
       </div>

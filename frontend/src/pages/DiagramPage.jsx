@@ -253,8 +253,8 @@ export default function DiagramPage({ onOpenSidebar }) {
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="w-9 h-9 bg-violet-100 rounded-xl flex items-center justify-center shrink-0">
-              <GitFork className="w-5 h-5 text-violet-600" />
+            <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center shrink-0">
+              <GitFork className="w-5 h-5 text-orange-500" />
             </div>
             <div>
               <h1 className="text-xl font-semibold text-zinc-900">Diagram Editor</h1>
@@ -279,7 +279,7 @@ export default function DiagramPage({ onOpenSidebar }) {
                     <button
                       key={t}
                       onClick={() => { setTheme(t); setThemeOpen(false) }}
-                      className={`w-full text-left px-3 py-1.5 text-xs capitalize hover:bg-zinc-50 transition ${t === theme ? 'text-violet-600 font-medium' : 'text-zinc-700'}`}
+                      className={`w-full text-left px-3 py-1.5 text-xs capitalize hover:bg-zinc-50 transition ${t === theme ? 'text-orange-500 font-medium' : 'text-zinc-700'}`}
                     >
                       {t}
                     </button>
@@ -308,7 +308,7 @@ export default function DiagramPage({ onOpenSidebar }) {
             <button
               onClick={handleExportPNG}
               disabled={!svg}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-violet-600 rounded-lg hover:bg-violet-700 disabled:opacity-40 transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 disabled:opacity-40 transition"
             >
               <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">PNG</span>
@@ -318,8 +318,8 @@ export default function DiagramPage({ onOpenSidebar }) {
 
         {/* ── AI Prompt Bar ──────────────────────────────────────────────── */}
         <div className="mt-4 flex gap-2">
-          <div className="flex-1 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100 transition">
-            <Sparkles className="w-4 h-4 text-violet-500 shrink-0" />
+          <div className="flex-1 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-100 transition">
+            <Sparkles className="w-4 h-4 text-orange-500 shrink-0" />
             <input
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
@@ -337,7 +337,7 @@ export default function DiagramPage({ onOpenSidebar }) {
           <button
             onClick={handleGenerate}
             disabled={!prompt.trim() || generating}
-            className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:bg-violet-300 text-white text-sm font-medium rounded-xl transition"
+            className="flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white text-sm font-medium rounded-xl transition"
           >
             {generating
               ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
@@ -361,7 +361,7 @@ export default function DiagramPage({ onOpenSidebar }) {
               onClick={() => applyTemplate(name)}
               className={`shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium transition ${
                 activeTemplate === name
-                  ? 'bg-violet-100 text-violet-700 border border-violet-200'
+                  ? 'bg-orange-100 text-orange-600 border border-orange-200'
                   : 'bg-zinc-100 text-zinc-600 border border-zinc-200 hover:bg-zinc-200'
               }`}
             >
