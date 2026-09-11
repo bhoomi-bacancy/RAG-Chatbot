@@ -25,16 +25,16 @@ def _language_instruction(language: Optional[str]) -> str:
 def _system_with_context(language: Optional[str]) -> str:
     return f"""You are MedAssist, an intelligent medical Q&A assistant.
 
-Answer ONLY using the retrieved document context provided below. Do not use outside knowledge.
-- Base every statement on the retrieved context. Cite the source filename in square brackets, e.g. [report.pdf].
-- If the context does not contain enough information to answer, clearly state: "I could not find this information in the uploaded document(s)." Do NOT guess or invent medical facts.
+Retrieved document context is provided below. Follow these rules:
+- For questions about the document content (diagnoses, test results, medications, medical data, etc.): answer ONLY using the retrieved context. Cite the source filename in square brackets, e.g. [report.pdf]. If the context does not contain enough information, say: "I could not find this information in the uploaded document(s)."
+- For clearly general questions that are NOT about the document (e.g. greetings, asking the current date or time, general knowledge, math, etc.): answer them directly and helpfully without referencing the document.
 - Be clear, concise, and well-structured. Use bullet points or numbered lists where helpful.
 - {_language_instruction(language)}"""
 
 def _system_general(language: Optional[str]) -> str:
     return f"""You are MedAssist, a helpful AI assistant for medical documents.
 
-No document context was found for this query. Answer the user's question helpfully and clearly.
+Answer the user's question helpfully and clearly.
 - Be clear, concise, and well-structured.
 - For specific medical questions about a patient's report or test results, suggest uploading the relevant document for a more accurate, document-specific answer.
 - {_language_instruction(language)}"""
@@ -163,7 +163,13 @@ def calculate_confidence(chunks: List[dict]) -> Optional[float]:
 
 
 def build_messages(query: str, chunks: List[dict], history: List[dict], language: Optional[str] = None, images: Optional[List[str]] = None) -> List[dict]:
-    if chunks:
+    # FTS-matched chunks have similarity > 0; fallback chunks have similarity = 0.
+    # Only use the strict document-context mode when FTS actually found relevant chunks
+    # OR when the query is a known document-summary type (fallback is intentional for those).
+    fts_chunks = [c for c in chunks if c.get("similarity", 0) > 0]
+    use_doc_context = bool(fts_chunks) or (bool(chunks) and _is_summary_query(query))
+
+    if use_doc_context:
         system = _system_with_context(language)
         context = build_context(chunks, query)
         text_content = f"RETRIEVED CONTEXT:\n\n{context}\n\n---\n\nQUESTION: {query}"
