@@ -303,7 +303,7 @@ async def list_documents(current_user: dict = Depends(get_current_user)):
         sb.table("documents")
         .select("*")
         .eq("user_id", current_user["id"])
-        .order("created_at", desc=True)
+        .order("uploaded_at", desc=True)
         .execute()
     )
     return [
