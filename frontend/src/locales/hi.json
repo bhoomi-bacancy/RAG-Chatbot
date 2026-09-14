@@ -107,5 +107,36 @@
     "status_done": "हो गया",
     "status_duplicate": "डुप्लिकेट",
     "status_error": "त्रुटि"
+  },
+  "diagram": {
+    "title": "डायग्राम एडिटर",
+    "subtitle": "AI से Mermaid डायग्राम बनाएं और संपादित करें",
+    "placeholder": "डायग्राम का वर्णन करें — जैसे 'ICU शाखा के साथ रोगी प्रवेश फ्लोचार्ट'…",
+    "generating": "बन रहा है…",
+    "generate": "बनाएं",
+    "templates": "टेम्पलेट:",
+    "mermaidCode": "Mermaid कोड",
+    "lines": "{{count}} पंक्तियाँ",
+    "livePreview": "लाइव प्रीव्यू",
+    "valid": "✓ वैध",
+    "fixSyntax": "प्रीव्यू देखने के लिए सिंटैक्स त्रुटि ठीक करें",
+    "emptyTitle": "आपका डायग्राम यहाँ दिखेगा",
+    "emptyHint": "टेम्पलेट उपयोग करें या AI से डायग्राम का वर्णन करें",
+    "copied": "कॉपी हो गया!",
+    "copy": "कॉपी करें"
+  },
+  "bubble": {
+    "thinking": "Inkira सोच रहा है…",
+    "confidence_high": "उच्च",
+    "confidence_medium": "मध्यम",
+    "confidence_low": "कम",
+    "confidence_suffix": "विश्वास",
+    "hideSources": "छिपाएं",
+    "viewSources": "देखें",
+    "source": "स्रोत",
+    "sources": "स्रोत",
+    "copied": "कॉपी हुआ",
+    "copy": "कॉपी",
+    "regenerate": "पुनः बनाएं"
   }
 }

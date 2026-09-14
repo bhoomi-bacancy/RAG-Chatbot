@@ -2,6 +2,7 @@ import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { ChevronDown, ChevronUp, FileText, Bot, RotateCcw, Copy, Check } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 
 
@@ -96,12 +97,13 @@ function SourceCard({ source, index }) {
 }
 
 /* ── Confidence badge ─────────────────────────────────────────────────────── */
-function ConfidenceTag({ value }) {
+function ConfidenceTag({ value, t }) {
   const pct = Math.round((value || 0) * 100)
   const cls = pct >= 75 ? 'text-green-600 bg-green-50' : pct >= 50 ? 'text-amber-600 bg-amber-50' : 'text-red-500 bg-red-50'
+  const label = pct >= 75 ? t('bubble.confidence_high') : pct >= 50 ? t('bubble.confidence_medium') : t('bubble.confidence_low')
   return (
     <span className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ${cls}`}>
-      {pct >= 75 ? 'High' : pct >= 50 ? 'Medium' : 'Low'} confidence · {pct}%
+      {label} {t('bubble.confidence_suffix')} · {pct}%
     </span>
   )
 }
@@ -133,6 +135,7 @@ export default function MessageBubble({ message, onOpenDocuments, onRegenerate }
   const [sourcesOpen, setSourcesOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const { user } = useAuth()
+  const { t } = useTranslation()
   const isUser      = message.role === 'user'
   const isStreaming = message.streaming
   const initial = (user?.name || user?.email || 'U').charAt(0).toUpperCase()
@@ -198,7 +201,7 @@ export default function MessageBubble({ message, onOpenDocuments, onRegenerate }
             /* Waiting for first token */
             <div className="flex items-center gap-2 text-zinc-400 text-xs py-1">
               <TypingIndicator />
-              <span>Inkira is thinking…</span>
+              <span>{t('bubble.thinking')}</span>
             </div>
           ) : (
             <>
@@ -240,14 +243,14 @@ export default function MessageBubble({ message, onOpenDocuments, onRegenerate }
           return (
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-3">
-                {message.confidence != null && <ConfidenceTag value={message.confidence} />}
+                {message.confidence != null && <ConfidenceTag value={message.confidence} t={t} />}
                 {showSources && (
                   <button
                     onClick={() => setSourcesOpen(v => !v)}
                     className="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-800 font-medium transition-colors"
                   >
                     {sourcesOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                    {sourcesOpen ? 'Hide' : 'View'} {message.sources.length} source{message.sources.length > 1 ? 's' : ''}
+                    {sourcesOpen ? t('bubble.hideSources') : t('bubble.viewSources')} {message.sources.length} {message.sources.length > 1 ? t('bubble.sources') : t('bubble.source')}
                   </button>
                 )}
               </div>
@@ -258,7 +261,7 @@ export default function MessageBubble({ message, onOpenDocuments, onRegenerate }
                   className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 >
                   {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                  {copied ? 'Copied' : 'Copy'}
+                  {copied ? t('bubble.copied') : t('bubble.copy')}
                 </button>
                 {onRegenerate && (
                   <button
@@ -267,7 +270,7 @@ export default function MessageBubble({ message, onOpenDocuments, onRegenerate }
                     className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                   >
                     <RotateCcw className="w-3 h-3" />
-                    Regenerate
+                    {t('bubble.regenerate')}
                   </button>
                 )}
               </div>

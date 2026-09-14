@@ -66,16 +66,16 @@ export const PROVIDERS = [
   {
     id: 'google',
     name: 'Google',
-    tagline: 'Gemini 2.0, 1.5 Pro',
+    tagline: 'Gemini 2.0 Flash, 1.5 Pro',
     accentCls: 'text-blue-700 bg-blue-50 border-blue-200',
     dotCls: 'bg-blue-500',
     iconBg: 'bg-blue-600',
     iconLabel: 'G',
     keyUrl: 'https://aistudio.google.com/apikey',
     models: [
-      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', badge: 'Latest',       badgeCls: 'bg-blue-100 text-blue-700',    Icon: Zap,   desc: 'Fastest Gemini — vision + text',   vision: true },
-      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', badge: 'Stable',       badgeCls: 'bg-sky-100 text-sky-700',      Icon: Zap,   desc: 'Reliable multimodal model',         vision: true },
-      { id: 'gemini-1.5-pro',   name: 'Gemini 1.5 Pro',   badge: 'Long Context', badgeCls: 'bg-indigo-100 text-indigo-700',Icon: Brain, desc: '1M token context window',           vision: true },
+      { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash Exp', badge: 'Latest',  badgeCls: 'bg-blue-100 text-blue-700',    Icon: Zap,   desc: 'Fastest Gemini — vision + text',   vision: true },
+      { id: 'gemini-2.0-flash',     name: 'Gemini 2.0 Flash',     badge: 'Stable',  badgeCls: 'bg-sky-100 text-sky-700',      Icon: Zap,   desc: 'Reliable multimodal model',         vision: true },
+      { id: 'gemini-1.5-pro',       name: 'Gemini 1.5 Pro',       badge: 'Long Context', badgeCls: 'bg-indigo-100 text-indigo-700',Icon: Brain, desc: '1M token context window',      vision: true },
     ],
   },
 ]

@@ -107,5 +107,36 @@
     "status_done": "تم",
     "status_duplicate": "مكرر",
     "status_error": "خطأ"
+  },
+  "diagram": {
+    "title": "محرر المخططات",
+    "subtitle": "إنشاء وتعديل مخططات Mermaid بالذكاء الاصطناعي",
+    "placeholder": "صف مخططاً — مثلاً 'مخطط تدفق قبول المريض مع فرع العناية المركزة'…",
+    "generating": "جارٍ الإنشاء…",
+    "generate": "إنشاء",
+    "templates": "القوالب:",
+    "mermaidCode": "كود Mermaid",
+    "lines": "{{count}} أسطر",
+    "livePreview": "معاينة مباشرة",
+    "valid": "✓ صالح",
+    "fixSyntax": "أصلح خطأ البنية لرؤية المعاينة",
+    "emptyTitle": "سيظهر مخططك هنا",
+    "emptyHint": "استخدم قالباً أو صف مخططاً بالذكاء الاصطناعي",
+    "copied": "تم النسخ!",
+    "copy": "نسخ"
+  },
+  "bubble": {
+    "thinking": "Inkira يفكر…",
+    "confidence_high": "مرتفعة",
+    "confidence_medium": "متوسطة",
+    "confidence_low": "منخفضة",
+    "confidence_suffix": "ثقة",
+    "hideSources": "إخفاء",
+    "viewSources": "عرض",
+    "source": "مصدر",
+    "sources": "مصادر",
+    "copied": "تم النسخ",
+    "copy": "نسخ",
+    "regenerate": "إعادة الإنشاء"
   }
 }

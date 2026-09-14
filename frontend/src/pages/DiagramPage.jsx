@@ -4,6 +4,7 @@ import {
   GitFork, Sparkles, Copy, Download, Check, Loader2,
   AlertCircle, Menu, ChevronDown, RotateCcw,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { generateDiagram } from '../api/client'
 
 // ── Mermaid init ──────────────────────────────────────────────────────────────
@@ -130,6 +131,7 @@ const MERMAID_THEMES = ['default', 'forest', 'dark', 'neutral', 'base']
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function DiagramPage({ onOpenSidebar }) {
+  const { t } = useTranslation()
   const [code, setCode]           = useState(TEMPLATES['Flowchart'])
   const [svg, setSvg]             = useState('')
   const [parseError, setParseError] = useState(null)
@@ -257,8 +259,8 @@ export default function DiagramPage({ onOpenSidebar }) {
               <GitFork className="w-5 h-5 text-orange-500" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-zinc-900">Diagram Editor</h1>
-              <p className="text-sm text-zinc-400">Generate and edit Mermaid diagrams with AI</p>
+              <h1 className="text-xl font-semibold text-zinc-900">{t('diagram.title')}</h1>
+              <p className="text-sm text-zinc-400">{t('diagram.subtitle')}</p>
             </div>
           </div>
 
@@ -293,7 +295,7 @@ export default function DiagramPage({ onOpenSidebar }) {
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-600 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-              <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
+              <span className="hidden sm:inline">{copied ? t('diagram.copied') : t('diagram.copy')}</span>
             </button>
 
             <button
@@ -324,7 +326,7 @@ export default function DiagramPage({ onOpenSidebar }) {
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleGenerate()}
-              placeholder="Describe a diagram — e.g. 'Patient admission flowchart with ICU branch'…"
+              placeholder={t('diagram.placeholder')}
               className="flex-1 bg-transparent text-sm text-zinc-800 placeholder-zinc-400 outline-none"
               disabled={generating}
             />
@@ -340,8 +342,8 @@ export default function DiagramPage({ onOpenSidebar }) {
             className="flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white text-sm font-medium rounded-xl transition"
           >
             {generating
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
-              : <><Sparkles className="w-4 h-4" /> Generate</>
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('diagram.generating')}</>
+              : <><Sparkles className="w-4 h-4" /> {t('diagram.generate')}</>
             }
           </button>
         </div>
@@ -354,7 +356,7 @@ export default function DiagramPage({ onOpenSidebar }) {
 
         {/* ── Template buttons ───────────────────────────────────────────── */}
         <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
-          <span className="text-xs text-zinc-400 shrink-0">Templates:</span>
+          <span className="text-xs text-zinc-400 shrink-0">{t('diagram.templates')}</span>
           {Object.keys(TEMPLATES).map(name => (
             <button
               key={name}
@@ -377,8 +379,8 @@ export default function DiagramPage({ onOpenSidebar }) {
         {/* Code Editor */}
         <div className="lg:w-[45%] shrink-0 flex flex-col border-b lg:border-b-0 lg:border-r border-zinc-100 min-h-0">
           <div className="flex items-center justify-between px-4 py-2 bg-zinc-50 border-b border-zinc-100">
-            <span className="text-xs font-medium text-zinc-500">Mermaid Code</span>
-            <span className="text-xs text-zinc-400">{code.split('\n').length} lines</span>
+            <span className="text-xs font-medium text-zinc-500">{t('diagram.mermaidCode')}</span>
+            <span className="text-xs text-zinc-400">{t('diagram.lines', { count: code.split('\n').length })}</span>
           </div>
           <textarea
             value={code}
@@ -398,8 +400,8 @@ export default function DiagramPage({ onOpenSidebar }) {
         {/* Preview */}
         <div className="flex-1 flex flex-col min-h-0">
           <div className="flex items-center justify-between px-4 py-2 bg-zinc-50 border-b border-zinc-100">
-            <span className="text-xs font-medium text-zinc-500">Live Preview</span>
-            {svg && <span className="text-xs text-green-600 font-medium">✓ Valid</span>}
+            <span className="text-xs font-medium text-zinc-500">{t('diagram.livePreview')}</span>
+            {svg && <span className="text-xs text-green-600 font-medium">{t('diagram.valid')}</span>}
           </div>
           <div className="flex-1 overflow-auto p-6 flex items-start justify-center bg-white min-h-[200px]">
             {svg ? (
@@ -410,13 +412,13 @@ export default function DiagramPage({ onOpenSidebar }) {
             ) : parseError ? (
               <div className="flex flex-col items-center justify-center gap-3 text-center py-16">
                 <AlertCircle className="w-10 h-10 text-red-200" />
-                <p className="text-sm text-zinc-400">Fix the syntax error to see the preview</p>
+                <p className="text-sm text-zinc-400">{t('diagram.fixSyntax')}</p>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center gap-3 text-center py-16">
                 <GitFork className="w-10 h-10 text-zinc-200" />
-                <p className="text-sm text-zinc-400">Your diagram will appear here</p>
-                <p className="text-xs text-zinc-300">Use a template or describe a diagram with AI</p>
+                <p className="text-sm text-zinc-400">{t('diagram.emptyTitle')}</p>
+                <p className="text-xs text-zinc-300">{t('diagram.emptyHint')}</p>
               </div>
             )}
           </div>

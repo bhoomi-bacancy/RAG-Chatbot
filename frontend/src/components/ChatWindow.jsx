@@ -615,11 +615,11 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
   ]
 
   const exportChatAsPDF = () => {
-    const title = chatsRef.current.find(c => c.id === chatId)?.title || 'MedAssist Chat'
+    const title = chatsRef.current.find(c => c.id === chatId)?.title || 'Inkira Chat'
     const rows = messages
       .filter(m => !m.streaming && m.content)
       .map(m => {
-        const role = m.role === 'user' ? 'You' : 'MedAssist'
+        const role = m.role === 'user' ? 'You' : 'Inkira'
         const bg = m.role === 'user' ? '#fff7ed' : '#f8fafc'
         const border = m.role === 'user' ? '#fed7aa' : '#e2e8f0'
         return `<div style="margin-bottom:16px;padding:14px 16px;background:${bg};border:1px solid ${border};border-radius:12px;">
@@ -641,7 +641,7 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
           </div>
           <div>
             <div style="font-size:18px;font-weight:700;color:#1e293b;">${title}</div>
-            <div style="font-size:12px;color:#94a3b8;">Exported from MedAssist · ${new Date().toLocaleDateString()}</div>
+            <div style="font-size:12px;color:#94a3b8;">Exported from Inkira · ${new Date().toLocaleDateString()}</div>
           </div>
         </div>
       </div>

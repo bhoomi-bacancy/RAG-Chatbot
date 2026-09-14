@@ -21,29 +21,28 @@ def retrieve_chunks(
     user_id: Optional[str] = None,
     top_k: int = None,
 ) -> List[dict]:
-    # Never search when no specific documents are in scope — searching all user
-    # documents globally pollutes general conversations with irrelevant context.
-    if not document_ids:
-        return []
-
     top_k = top_k or settings.top_k
 
-    # For summarisation-type queries fetch more chunks so the LLM has enough context
+    # Always fetch extra chunks so the LLM has broad document coverage.
+    # Summary queries fetch even more for full-document analysis.
     is_summary = _is_summary_query(query)
-    effective_k = min(top_k * 3, 20) if is_summary else top_k
+    effective_k = min(top_k * 2, 20) if is_summary else min(top_k, 10)
 
+    # Pass document_ids=None to search across all user documents when no specific
+    # docs are linked to the chat (e.g. uploaded via the Documents page).
     results = search_chunks_safe(
         query=query,
         user_id=user_id,
-        document_ids=document_ids,
+        document_ids=document_ids or None,
         top_k=effective_k,
     )
 
-    # When explicit document_ids are provided but FTS finds nothing (e.g.
-    # "summarize this" has no keyword overlap with chunk content), fall back to
-    # fetching the first N chunks directly so the LLM always sees the document.
+    # When FTS finds nothing, fall back to fetching the first N chunks directly
+    # so the LLM always sees document content.
+    # - Specific doc IDs given: fallback within those docs only.
+    # - No doc IDs (searching all user docs): fallback across all user's chunks.
     if not results:
-        results = get_fallback_chunks(user_id, document_ids, effective_k)
+        results = get_fallback_chunks(user_id, document_ids or None, effective_k)
 
     return [
         {

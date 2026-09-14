@@ -56,7 +56,11 @@ async def register(body: UserCreate):
 @router.post("/login", response_model=TokenResponse)
 async def login(body: UserLogin):
     user = get_by_email(body.email.lower().strip())
-    if not user or not verify_password(body.password, user["password_hash"]):
+    if not user:
+        raise HTTPException(401, "Invalid email or password")
+    if user.get("password_hash") == "SSO_NO_PASSWORD":
+        raise HTTPException(401, "This account uses Google/Facebook sign-in. Please use the social login button.")
+    if not verify_password(body.password, user["password_hash"]):
         raise HTTPException(401, "Invalid email or password")
     usage = get_usage(user["id"])
     return TokenResponse(

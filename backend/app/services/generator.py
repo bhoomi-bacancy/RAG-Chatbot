@@ -23,12 +23,17 @@ def _language_instruction(language: Optional[str]) -> str:
     )
 
 def _system_with_context(language: Optional[str]) -> str:
-    return f"""You are MedAssist, an intelligent medical Q&A assistant.
+    return f"""You are MedAssist, an intelligent document analysis assistant.
 
-Retrieved document context is provided below. Follow these rules:
-- For questions about the document content (diagnoses, test results, medications, medical data, etc.): answer ONLY using the retrieved context. Cite the source filename in square brackets, e.g. [report.pdf]. If the context does not contain enough information, say: "I could not find this information in the uploaded document(s)."
-- For clearly general questions that are NOT about the document (e.g. greetings, asking the current date or time, general knowledge, math, etc.): answer them directly and helpfully without referencing the document.
-- Be clear, concise, and well-structured. Use bullet points or numbered lists where helpful.
+Retrieved document context is provided below. Follow these rules strictly:
+1. ALWAYS analyze the retrieved document context thoroughly and in detail before answering.
+2. If the answer is found in the document context: provide a detailed, comprehensive answer using all relevant information from the document. Cite the source filename in square brackets, e.g. [resume.pdf] or [report.pdf]. Do NOT give a brief answer — extract and present every relevant detail, section, value, and point from the document.
+3. If the document context does not contain enough information: clearly state "This specific information was not found in the uploaded document(s)." then provide a helpful general answer based on your knowledge.
+4. For clearly off-topic questions unrelated to documents (greetings, math, current date, etc.): answer directly without referencing the document.
+- Structure your response clearly using headings, bullet points, and numbered lists where appropriate.
+- For resumes: cover all sections — skills, experience, education, achievements, certifications.
+- For medical reports: cover all findings, values, diagnoses, medications, and recommendations.
+- For any document: be thorough — do not omit details that appear in the retrieved context.
 - {_language_instruction(language)}"""
 
 def _system_general(language: Optional[str]) -> str:
@@ -122,8 +127,8 @@ def _openai_to_gemini_parts(content):
 
 # ── Message builders ───────────────────────────────────────────────────────────
 
-_CHUNK_CHAR_LIMIT = 1500     # default per-chunk cap
-_SUMMARY_CHAR_LIMIT = 3000   # larger cap for summarisation queries
+_CHUNK_CHAR_LIMIT = 1800     # default per-chunk cap
+_SUMMARY_CHAR_LIMIT = 3500   # larger cap for summarisation queries
 _SUMMARY_TRIGGERS = {
     "summarize", "summary", "summarise", "overview", "brief", "briefly",
     "describe", "explain", "what is this", "what does this", "tell me about",
@@ -163,11 +168,9 @@ def calculate_confidence(chunks: List[dict]) -> Optional[float]:
 
 
 def build_messages(query: str, chunks: List[dict], history: List[dict], language: Optional[str] = None, images: Optional[List[str]] = None) -> List[dict]:
-    # FTS-matched chunks have similarity > 0; fallback chunks have similarity = 0.
-    # Only use the strict document-context mode when FTS actually found relevant chunks
-    # OR when the query is a known document-summary type (fallback is intentional for those).
-    fts_chunks = [c for c in chunks if c.get("similarity", 0) > 0]
-    use_doc_context = bool(fts_chunks) or (bool(chunks) and _is_summary_query(query))
+    # Use document context whenever chunks exist — both FTS-matched (rank > 0) and
+    # fallback chunks (rank = 0). The system prompt handles the "not found in document" case.
+    use_doc_context = bool(chunks)
 
     if use_doc_context:
         system = _system_with_context(language)
@@ -276,7 +279,12 @@ async def _stream_tokens_google(messages: List[dict], model: str, api_key: str) 
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent"
 
-    async with httpx.AsyncClient(timeout=55.0) as client:
+    # Separate connect vs read timeouts — images take longer to process before
+    # the first byte arrives, but once streaming starts reads should be fast.
+    timeout = httpx.Timeout(connect=15.0, read=50.0, write=30.0, pool=5.0)
+    tokens_yielded = 0
+
+    async with httpx.AsyncClient(timeout=timeout) as client:
         async with client.stream(
             "POST", url,
             params={"alt": "sse", "key": api_key},
@@ -287,29 +295,43 @@ async def _stream_tokens_google(messages: List[dict], model: str, api_key: str) 
                 raise ValueError(f"Gemini API error {response.status_code}: {body.decode()[:300]}")
 
             async for line in response.aiter_lines():
-                if not line.startswith("data: "):
+                line = line.strip()
+                if not line:
                     continue
-                data = line[6:].strip()
-                if not data:
+                # Handle both "data: {...}" (SSE) and raw "{...}" (NDJSON) formats
+                if line.startswith("data:"):
+                    line = line[5:].strip()
+                if not line:
                     continue
                 try:
-                    chunk = _json.loads(data)
+                    chunk = _json.loads(line)
+                    # Check for top-level API error
+                    if chunk.get("error"):
+                        raise ValueError(str(chunk["error"]))
                     candidates = chunk.get("candidates", [])
                     if not candidates:
                         fb = chunk.get("promptFeedback", {})
                         if fb.get("blockReason"):
                             raise ValueError(f"Content blocked by safety filter: {fb['blockReason']}")
                         continue
+                    candidate = candidates[0]
+                    # Safety block mid-stream
+                    if candidate.get("finishReason") == "SAFETY":
+                        raise ValueError("Response blocked by Gemini safety filter. Try rephrasing your request.")
                     text = (
-                        candidates[0]
+                        candidate
                         .get("content", {})
                         .get("parts", [{}])[0]
                         .get("text", "")
                     )
                     if text:
+                        tokens_yielded += 1
                         yield text
                 except (_json.JSONDecodeError, IndexError, KeyError):
                     pass
+
+    if tokens_yielded == 0:
+        raise ValueError("Gemini returned an empty response. The image may be unsupported or the request was blocked.")
 
 
 # ── Public API ─────────────────────────────────────────────────────────────────

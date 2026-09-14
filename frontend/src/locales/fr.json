@@ -107,5 +107,36 @@
     "status_done": "Terminé",
     "status_duplicate": "Doublon",
     "status_error": "Erreur"
+  },
+  "diagram": {
+    "title": "Éditeur de Diagrammes",
+    "subtitle": "Générez et modifiez des diagrammes Mermaid avec l'IA",
+    "placeholder": "Décrivez un diagramme — ex. 'Organigramme d'admission patient avec branche USI'…",
+    "generating": "Génération…",
+    "generate": "Générer",
+    "templates": "Modèles :",
+    "mermaidCode": "Code Mermaid",
+    "lines": "{{count}} lignes",
+    "livePreview": "Aperçu en direct",
+    "valid": "✓ Valide",
+    "fixSyntax": "Corrigez l'erreur de syntaxe pour voir l'aperçu",
+    "emptyTitle": "Votre diagramme apparaîtra ici",
+    "emptyHint": "Utilisez un modèle ou décrivez un diagramme avec l'IA",
+    "copied": "Copié !",
+    "copy": "Copier"
+  },
+  "bubble": {
+    "thinking": "Inkira réfléchit…",
+    "confidence_high": "Haute",
+    "confidence_medium": "Moyenne",
+    "confidence_low": "Faible",
+    "confidence_suffix": "confiance",
+    "hideSources": "Masquer",
+    "viewSources": "Voir",
+    "source": "source",
+    "sources": "sources",
+    "copied": "Copié",
+    "copy": "Copier",
+    "regenerate": "Régénérer"
   }
 }

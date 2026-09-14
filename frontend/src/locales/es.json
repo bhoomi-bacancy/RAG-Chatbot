@@ -107,5 +107,36 @@
     "status_done": "Listo",
     "status_duplicate": "Duplicado",
     "status_error": "Error"
+  },
+  "diagram": {
+    "title": "Editor de Diagramas",
+    "subtitle": "Genera y edita diagramas Mermaid con IA",
+    "placeholder": "Describe un diagrama — p.ej. 'Diagrama de flujo de admisión de pacientes con rama UCI'…",
+    "generating": "Generando…",
+    "generate": "Generar",
+    "templates": "Plantillas:",
+    "mermaidCode": "Código Mermaid",
+    "lines": "{{count}} líneas",
+    "livePreview": "Vista Previa",
+    "valid": "✓ Válido",
+    "fixSyntax": "Corrige el error de sintaxis para ver la vista previa",
+    "emptyTitle": "Tu diagrama aparecerá aquí",
+    "emptyHint": "Usa una plantilla o describe un diagrama con IA",
+    "copied": "¡Copiado!",
+    "copy": "Copiar"
+  },
+  "bubble": {
+    "thinking": "Inkira está pensando…",
+    "confidence_high": "Alta",
+    "confidence_medium": "Media",
+    "confidence_low": "Baja",
+    "confidence_suffix": "confianza",
+    "hideSources": "Ocultar",
+    "viewSources": "Ver",
+    "source": "fuente",
+    "sources": "fuentes",
+    "copied": "Copiado",
+    "copy": "Copiar",
+    "regenerate": "Regenerar"
   }
 }

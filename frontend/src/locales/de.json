@@ -107,5 +107,36 @@
     "status_done": "Fertig",
     "status_duplicate": "Duplikat",
     "status_error": "Fehler"
+  },
+  "diagram": {
+    "title": "Diagramm-Editor",
+    "subtitle": "Erstellen und bearbeiten Sie Mermaid-Diagramme mit KI",
+    "placeholder": "Beschreiben Sie ein Diagramm — z.B. 'Patientenaufnahme-Flussdiagramm mit ICU-Zweig'…",
+    "generating": "Wird generiert…",
+    "generate": "Generieren",
+    "templates": "Vorlagen:",
+    "mermaidCode": "Mermaid-Code",
+    "lines": "{{count}} Zeilen",
+    "livePreview": "Live-Vorschau",
+    "valid": "✓ Gültig",
+    "fixSyntax": "Beheben Sie den Syntaxfehler, um die Vorschau zu sehen",
+    "emptyTitle": "Ihr Diagramm erscheint hier",
+    "emptyHint": "Verwenden Sie eine Vorlage oder beschreiben Sie ein Diagramm mit KI",
+    "copied": "Kopiert!",
+    "copy": "Kopieren"
+  },
+  "bubble": {
+    "thinking": "Inkira denkt nach…",
+    "confidence_high": "Hoch",
+    "confidence_medium": "Mittel",
+    "confidence_low": "Niedrig",
+    "confidence_suffix": "Vertrauen",
+    "hideSources": "Ausblenden",
+    "viewSources": "Anzeigen",
+    "source": "Quelle",
+    "sources": "Quellen",
+    "copied": "Kopiert",
+    "copy": "Kopieren",
+    "regenerate": "Regenerieren"
   }
 }

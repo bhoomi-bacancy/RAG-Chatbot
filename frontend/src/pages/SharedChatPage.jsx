@@ -24,14 +24,14 @@ export default function SharedChatPage({ token }) {
           <div className="w-7 h-7 bg-orange-500 rounded-full flex items-center justify-center">
             <Bot className="w-4 h-4 text-white" />
           </div>
-          <span className="text-sm font-semibold text-zinc-900">MedAssist</span>
+          <span className="text-sm font-semibold text-zinc-900">Inkira</span>
           <span className="text-xs text-zinc-400 hidden sm:inline">· Shared conversation</span>
         </div>
         <a
           href="/"
           className="text-xs font-medium bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg transition"
         >
-          Open MedAssist
+          Open Inkira
         </a>
       </header>
 
@@ -47,7 +47,7 @@ export default function SharedChatPage({ token }) {
           <div className="flex flex-col items-center gap-3 py-20 text-center">
             <AlertCircle className="w-10 h-10 text-zinc-300" />
             <p className="text-sm text-zinc-500">{error}</p>
-            <a href="/" className="text-sm text-orange-500 hover:underline">Go to MedAssist</a>
+            <a href="/" className="text-sm text-orange-500 hover:underline">Go to Inkira</a>
           </div>
         )}
 
@@ -83,13 +83,13 @@ export default function SharedChatPage({ token }) {
       {/* Footer CTA */}
       <footer className="bg-white border-t border-zinc-100 px-4 py-6 text-center">
         <p className="text-sm text-zinc-500 mb-3">
-          Want to ask your own medical questions? Try MedAssist — upload any document, ask anything.
+          Want to ask your own medical questions? Try Inkira — upload any document, ask anything.
         </p>
         <a
           href="/"
           className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition"
         >
-          Try MedAssist free
+          Try Inkira free
         </a>
       </footer>
     </div>

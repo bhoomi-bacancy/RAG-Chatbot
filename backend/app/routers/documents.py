@@ -151,6 +151,35 @@ async def upload_document(
     duplicates_removed = len(all_chunks) - len(unique_chunks)
 
     if not unique_chunks:
+        # Content already exists — find the existing document so the chat can still use it.
+        try:
+            hashes = [c["content_hash"] for c in all_chunks if c.get("content_hash")]
+            if hashes:
+                sb = get_supabase()
+                hit = (
+                    sb.table("document_chunks")
+                    .select("document_id")
+                    .eq("user_id", user_id)
+                    .in_("content_hash", hashes[:1])
+                    .limit(1)
+                    .execute()
+                )
+                if hit.data:
+                    existing_id = hit.data[0]["document_id"]
+                    if chat_id:
+                        try:
+                            add_doc(user_id, chat_id, existing_id)
+                        except Exception:
+                            pass
+                    return UploadResponse(
+                        document_id=existing_id,
+                        filename=file.filename,
+                        chunks_created=0,
+                        duplicates_removed=len(all_chunks),
+                        message=f"'{file.filename}' already exists in your knowledge base — using existing content.",
+                    )
+        except Exception:
+            pass
         raise HTTPException(
             status_code=422,
             detail="All content in this document already exists in your knowledge base.",

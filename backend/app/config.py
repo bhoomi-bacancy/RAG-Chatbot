@@ -6,8 +6,8 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "llama-3.1-8b-instant"
     top_k: int = 15
-    chunk_size: int = 500
-    chunk_overlap: int = 100
+    chunk_size: int = 1000
+    chunk_overlap: int = 200
     jwt_secret: str = "inkira-secret-key-change-in-prod"
     jwt_algorithm: str = "HS256"
     jwt_expire_days: int = 7

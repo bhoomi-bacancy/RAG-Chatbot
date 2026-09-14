@@ -107,5 +107,36 @@
     "status_done": "Done",
     "status_duplicate": "Duplicate",
     "status_error": "Error"
+  },
+  "diagram": {
+    "title": "Diagram Editor",
+    "subtitle": "Generate and edit Mermaid diagrams with AI",
+    "placeholder": "Describe a diagram — e.g. 'Patient admission flowchart with ICU branch'…",
+    "generating": "Generating…",
+    "generate": "Generate",
+    "templates": "Templates:",
+    "mermaidCode": "Mermaid Code",
+    "lines": "{{count}} lines",
+    "livePreview": "Live Preview",
+    "valid": "✓ Valid",
+    "fixSyntax": "Fix the syntax error to see the preview",
+    "emptyTitle": "Your diagram will appear here",
+    "emptyHint": "Use a template or describe a diagram with AI",
+    "copied": "Copied!",
+    "copy": "Copy"
+  },
+  "bubble": {
+    "thinking": "Inkira is thinking…",
+    "confidence_high": "High",
+    "confidence_medium": "Medium",
+    "confidence_low": "Low",
+    "confidence_suffix": "confidence",
+    "hideSources": "Hide",
+    "viewSources": "View",
+    "source": "source",
+    "sources": "sources",
+    "copied": "Copied",
+    "copy": "Copy",
+    "regenerate": "Regenerate"
   }
 }
