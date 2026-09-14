@@ -108,6 +108,27 @@
     "status_duplicate": "Duplicado",
     "status_error": "Error"
   },
+  "image": {
+    "title": "Generación de Imágenes",
+    "subtitle": "Genera imágenes con FLUX · gratis · sin registro",
+    "promptLabel": "Descripción",
+    "placeholder": "Una ciudad futurista al atardecer, fotorrealista, 8K…",
+    "sizeLabel": "Tamaño de imagen",
+    "sizeSquare": "Cuadrado",
+    "sizeLandscape": "Paisaje",
+    "sizePortrait": "Retrato",
+    "sizeWidescreen": "Panorámico",
+    "freeBadge": "FLUX · Gratis",
+    "via": "vía Pollinations.ai · ~15-30s",
+    "generating": "Generando…",
+    "retrying": "Reintentando… (intento {{n}}/{{max}})",
+    "generateBtn": "Generar con FLUX",
+    "generatingBtn": "Generando… (por favor espera)",
+    "history": "Historial",
+    "clearAll": "Borrar todo",
+    "failed": "Error en la generación",
+    "retry": "Reintentar"
+  },
   "diagram": {
     "title": "Editor de Diagramas",
     "subtitle": "Genera y edita diagramas Mermaid con IA",

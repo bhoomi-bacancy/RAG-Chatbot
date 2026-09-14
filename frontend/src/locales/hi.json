@@ -108,6 +108,27 @@
     "status_duplicate": "डुप्लिकेट",
     "status_error": "त्रुटि"
   },
+  "image": {
+    "title": "छवि निर्माण",
+    "subtitle": "FLUX से चित्र बनाएं · मुफ़्त · बिना साइनअप",
+    "promptLabel": "प्रॉम्प्ट",
+    "placeholder": "सूर्यास्त पर एक भविष्यवादी शहर, फोटोरियलिस्टिक, 8K…",
+    "sizeLabel": "छवि का आकार",
+    "sizeSquare": "वर्गाकार",
+    "sizeLandscape": "लैंडस्केप",
+    "sizePortrait": "पोर्ट्रेट",
+    "sizeWidescreen": "वाइडस्क्रीन",
+    "freeBadge": "FLUX · मुफ़्त",
+    "via": "Pollinations.ai के माध्यम से · ~15-30 सेकंड",
+    "generating": "बन रहा है…",
+    "retrying": "पुनः प्रयास… ({{n}}/{{max}})",
+    "generateBtn": "FLUX से बनाएं",
+    "generatingBtn": "बन रहा है… (कृपया प्रतीक्षा करें)",
+    "history": "इतिहास",
+    "clearAll": "सब साफ़ करें",
+    "failed": "निर्माण विफल हुआ",
+    "retry": "पुनः प्रयास"
+  },
   "diagram": {
     "title": "डायग्राम एडिटर",
     "subtitle": "AI से Mermaid डायग्राम बनाएं और संपादित करें",

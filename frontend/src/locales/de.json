@@ -108,6 +108,27 @@
     "status_duplicate": "Duplikat",
     "status_error": "Fehler"
   },
+  "image": {
+    "title": "Bildgenerierung",
+    "subtitle": "Bilder mit FLUX erstellen · kostenlos · ohne Anmeldung",
+    "promptLabel": "Beschreibung",
+    "placeholder": "Eine futuristische Stadt bei Sonnenuntergang, fotorealistisch, 8K…",
+    "sizeLabel": "Bildgröße",
+    "sizeSquare": "Quadratisch",
+    "sizeLandscape": "Querformat",
+    "sizePortrait": "Hochformat",
+    "sizeWidescreen": "Breitbild",
+    "freeBadge": "FLUX · Kostenlos",
+    "via": "über Pollinations.ai · ~15-30s",
+    "generating": "Wird generiert…",
+    "retrying": "Neuer Versuch… (Versuch {{n}}/{{max}})",
+    "generateBtn": "Mit FLUX generieren",
+    "generatingBtn": "Wird generiert… (bitte warten)",
+    "history": "Verlauf",
+    "clearAll": "Alle löschen",
+    "failed": "Generierung fehlgeschlagen",
+    "retry": "Erneut versuchen"
+  },
   "diagram": {
     "title": "Diagramm-Editor",
     "subtitle": "Erstellen und bearbeiten Sie Mermaid-Diagramme mit KI",

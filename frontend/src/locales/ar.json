@@ -108,6 +108,27 @@
     "status_duplicate": "مكرر",
     "status_error": "خطأ"
   },
+  "image": {
+    "title": "توليد الصور",
+    "subtitle": "أنشئ صوراً باستخدام FLUX · مجاناً · بدون تسجيل",
+    "promptLabel": "الوصف",
+    "placeholder": "مدينة مستقبلية عند غروب الشمس، واقعية الصورة، 8K…",
+    "sizeLabel": "حجم الصورة",
+    "sizeSquare": "مربع",
+    "sizeLandscape": "أفقي",
+    "sizePortrait": "عمودي",
+    "sizeWidescreen": "شاشة عريضة",
+    "freeBadge": "FLUX · مجاني",
+    "via": "عبر Pollinations.ai · ~15-30 ثانية",
+    "generating": "جارٍ الإنشاء…",
+    "retrying": "إعادة المحاولة… (محاولة {{n}}/{{max}})",
+    "generateBtn": "إنشاء باستخدام FLUX",
+    "generatingBtn": "جارٍ الإنشاء… (يرجى الانتظار)",
+    "history": "السجل",
+    "clearAll": "مسح الكل",
+    "failed": "فشل الإنشاء",
+    "retry": "إعادة المحاولة"
+  },
   "diagram": {
     "title": "محرر المخططات",
     "subtitle": "إنشاء وتعديل مخططات Mermaid بالذكاء الاصطناعي",
