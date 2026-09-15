@@ -202,6 +202,16 @@ export async function editImageClient(imageDataUrl, prompt, onStatus) {
 
 export const getConfiguredProviders = () => api.get('/providers/configured')
 
+// ── Admin ─────────────────────────────────────────────────────────────────────
+
+export const adminGetStats      = ()           => api.get('/admin/stats')
+export const adminGetUsers      = (params)     => api.get('/admin/users', { params })
+export const adminUpdateUser    = (id, data)   => api.patch(`/admin/users/${id}`, data)
+export const adminDeleteUser    = (id)         => api.delete(`/admin/users/${id}`)
+export const adminGetDocuments  = (params)     => api.get('/admin/documents', { params })
+export const adminDeleteDocument = (id)        => api.delete(`/admin/documents/${id}`)
+export const adminGetAnalytics  = ()           => api.get('/admin/analytics')
+
 export const getProviders = () => api.get('/providers/')
 
 export const connectProvider = (provider) =>
@@ -217,6 +227,13 @@ export const saveProviderKey    = (provider, apiKey) =>
 export const deleteProviderKey  = (provider) =>
   api.delete(`/providers/key/${provider}`)
 
+// ── Memory ────────────────────────────────────────────────────────────────────
+
+export const getMemories     = ()        => api.get('/memory/')
+export const deleteMemory    = (id)      => api.delete(`/memory/${id}`)
+export const clearMemories   = ()        => api.delete('/memory/')
+export const extractMemory   = (message, response = '') => api.post('/memory/extract', { message, response })
+
 // ── Streaming chat ─────────────────────────────────────────────────────────────
 
 export async function streamChat(
@@ -224,6 +241,7 @@ export async function streamChat(
   callbacks
 ) {
   const { onSources, onToken, onDone, onError } = callbacks
+
 
   const token = localStorage.getItem('inkira_token')
 

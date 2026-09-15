@@ -9,7 +9,9 @@ import ChatWindow from './components/ChatWindow'
 import DocumentsPage from './pages/DocumentsPage'
 import ImageEditPage from './pages/ImageEditPage'
 import DiagramPage from './pages/DiagramPage'
+import MemoryPage from './pages/MemoryPage'
 import SharedChatPage from './pages/SharedChatPage'
+import AdminApp from './pages/admin/AdminApp'
 import { resetPassword } from './api/client'
 
 /* ── Reset Password Modal ─────────────────────────────────────────────────── */
@@ -204,6 +206,8 @@ function AppShell() {
         <ImageEditPage onOpenSidebar={() => setSidebarOpen(true)} />
       ) : view === 'diagrams' ? (
         <DiagramPage onOpenSidebar={() => setSidebarOpen(true)} />
+      ) : view === 'memory' ? (
+        <MemoryPage onOpenSidebar={() => setSidebarOpen(true)} />
       ) : (
         <ChatWindow
           chatId={currentChatId}
@@ -249,9 +253,10 @@ function AppShell() {
 
 export default function App() {
   const sharedMatch = window.location.pathname.match(/^\/shared\/(.+)$/)
-  if (sharedMatch) {
-    return <SharedChatPage token={sharedMatch[1]} />
-  }
+  if (sharedMatch) return <SharedChatPage token={sharedMatch[1]} />
+
+  if (window.location.pathname.startsWith('/admin')) return <AdminApp />
+
   return (
     <ThemeProvider>
       <AuthProvider>

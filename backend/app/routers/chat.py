@@ -1,3 +1,4 @@
+import asyncio
 import json
 import traceback
 from fastapi import APIRouter, Depends, HTTPException
@@ -8,6 +9,7 @@ from app.services.auth_service import get_current_user
 from app.services.retriever import retrieve_chunks
 from app.services.generator import generate_response, stream_response, translate_texts
 from app.stores.chat_store import get_chat, update_title
+from app.stores.memory_store import get_memories
 
 router = APIRouter()
 
@@ -31,8 +33,13 @@ async def chat(request: ChatRequest, current_user: dict = Depends(get_current_us
             document_ids=document_ids,
             user_id=uid,
         )
+        try:
+            memories = await asyncio.to_thread(get_memories, uid)
+        except Exception as mem_err:
+            print(f"[memory] Failed to fetch memories: {mem_err}")
+            memories = []
         history = [{"role": m.role, "content": m.content} for m in request.conversation_history]
-        answer, confidence = generate_response(request.message, chunks, history, model=request.model, user_id=uid, language=request.language, images=request.images)
+        answer, confidence = generate_response(request.message, chunks, history, model=request.model, user_id=uid, language=request.language, images=request.images, memories=memories)
 
         sources = [
             Source(
@@ -74,6 +81,11 @@ async def chat_stream(request: ChatRequest, current_user: dict = Depends(get_cur
             document_ids=document_ids,
             user_id=uid,
         )
+        try:
+            memories = await asyncio.to_thread(get_memories, uid)
+        except Exception as mem_err:
+            print(f"[memory] Failed to fetch memories: {mem_err}")
+            memories = []
         history = [{"role": m.role, "content": m.content} for m in request.conversation_history]
 
         # Auto-update chat title on first message
@@ -96,6 +108,7 @@ async def chat_stream(request: ChatRequest, current_user: dict = Depends(get_cur
                     user_api_key=request.user_api_key,
                     language=request.language,
                     images=request.images,
+                    memories=memories,
                 ):
                     if '"type": "done"' in chunk:
                         sent_done = True

@@ -28,8 +28,8 @@ def _system_with_context(language: Optional[str]) -> str:
 Retrieved document context is provided below. Follow these rules strictly:
 1. ALWAYS analyze the retrieved document context thoroughly and in detail before answering.
 2. If the answer is found in the document context: provide a detailed, comprehensive answer using all relevant information from the document. Cite the source filename in square brackets, e.g. [resume.pdf] or [report.pdf]. Do NOT give a brief answer — extract and present every relevant detail, section, value, and point from the document.
-3. If the document context does not contain enough information: clearly state "This specific information was not found in the uploaded document(s)." then provide a helpful general answer based on your knowledge.
-4. For clearly off-topic questions unrelated to documents (greetings, math, current date, etc.): answer directly without referencing the document.
+3. If the document context does not contain enough information: clearly state "This specific information was not found in the uploaded document(s)." then provide a helpful general answer based on your knowledge. EXCEPTION: If USER MEMORY (shown above) contains the answer, use it — do NOT say "not found in documents" for personal facts already in USER MEMORY.
+4. For personal questions about the user themselves (their name, age, occupation, medications, health conditions) OR for off-topic questions (greetings, math, current date, etc.): answer directly using USER MEMORY if available, without saying "not found in documents".
 - Structure your response clearly using headings, bullet points, and numbered lists where appropriate.
 - For resumes: cover all sections — skills, experience, education, achievements, certifications.
 - For medical reports: cover all findings, values, diagnoses, medications, and recommendations.
@@ -167,7 +167,7 @@ def calculate_confidence(chunks: List[dict]) -> Optional[float]:
     return round(normalized, 3)
 
 
-def build_messages(query: str, chunks: List[dict], history: List[dict], language: Optional[str] = None, images: Optional[List[str]] = None) -> List[dict]:
+def build_messages(query: str, chunks: List[dict], history: List[dict], language: Optional[str] = None, images: Optional[List[str]] = None, memories: Optional[List[str]] = None) -> List[dict]:
     # Use document context whenever chunks exist — both FTS-matched (rank > 0) and
     # fallback chunks (rank = 0). The system prompt handles the "not found in document" case.
     use_doc_context = bool(chunks)
@@ -179,6 +179,20 @@ def build_messages(query: str, chunks: List[dict], history: List[dict], language
     else:
         system = _system_general(language)
         text_content = query
+
+    if memories:
+        mem_block = "\n".join(f"- {m}" for m in memories)
+        memory_section = (
+            f"=== USER PERSONAL MEMORY (HIGHEST PRIORITY — overrides all rules below) ===\n"
+            f"You already KNOW these verified facts about this specific user:\n"
+            f"{mem_block}\n"
+            f"MANDATORY RULES:\n"
+            f"1. When the user asks about any of these personal facts, answer IMMEDIATELY from USER MEMORY — do NOT search documents for this.\n"
+            f"2. NEVER say 'This specific information was not found in the uploaded document(s)' for facts that ARE listed in USER MEMORY.\n"
+            f"3. These facts take ABSOLUTE PRIORITY over the document-analysis instructions that follow.\n"
+            f"=== END USER PERSONAL MEMORY ==="
+        )
+        system = memory_section + "\n\n" + system
 
     messages = [{"role": "system", "content": system}]
     # Keep up to 20 recent messages; older ones get tighter truncation to save tokens
@@ -344,6 +358,7 @@ def generate_response(
     user_id: Optional[str] = None,
     language: Optional[str] = None,
     images: Optional[List[str]] = None,
+    memories: Optional[List[str]] = None,
 ) -> tuple[str, Optional[float]]:
     """Synchronous (non-streaming) response — used by the non-streaming endpoint."""
     model = model or settings.groq_model
@@ -355,7 +370,7 @@ def generate_response(
             "or connect your OpenAI / Anthropic / Google account.",
             None,
         )
-    messages = build_messages(query, chunks, history, language, images)
+    messages = build_messages(query, chunks, history, language, images, memories)
     confidence = calculate_confidence(chunks)
 
     if provider == "groq":
@@ -420,6 +435,7 @@ async def stream_response(
     user_api_key: Optional[str] = None,
     language: Optional[str] = None,
     images: Optional[List[str]] = None,
+    memories: Optional[List[str]] = None,
 ) -> AsyncIterator[str]:
     """Async generator — yields SSE-formatted strings."""
     model = model or settings.groq_model
@@ -450,7 +466,7 @@ async def stream_response(
         yield f"data: {json.dumps({'type': 'done', 'confidence': None})}\n\n"
         return
 
-    messages = build_messages(query, chunks, history, language, images)
+    messages = build_messages(query, chunks, history, language, images, memories)
     confidence = calculate_confidence(chunks)
 
     # 2. Resolve API key: request key > stored key > platform key

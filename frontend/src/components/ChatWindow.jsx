@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { ArrowUp, Paperclip, X, Loader2, Sparkles, MessageSquare, FileText, ChevronDown, ImagePlus, Menu, Download, Share2, Check, Link } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import i18n from '../i18n'
-import { streamChat, getChat, createChat, uploadDocument, renameChat, getConfiguredProviders, getMyProviderKeys, deleteProviderKey, translateMessages, getSuggestions, shareChat, unshareChat } from '../api/client'
+import { streamChat, getChat, createChat, uploadDocument, renameChat, getConfiguredProviders, getMyProviderKeys, deleteProviderKey, translateMessages, getSuggestions, shareChat, unshareChat, extractMemory } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import MessageBubble from './MessageBubble'
 import ModelPickerModal, { MODELS, PROVIDERS } from './ModelPickerModal'
@@ -201,6 +201,7 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
   const messagesRef    = useRef([])     // always-current messages list for language-change effect
   const prevLangRef    = useRef(i18n.language)
   const originalMsgsRef = useRef({})   // { id: original_content } — source of truth for re-translation
+  const aiResponseRef  = useRef('')     // accumulates streaming AI response for memory extraction
 
   // Keep chatsRef and messagesRef current so callbacks always see the latest state
   useEffect(() => { chatsRef.current = chats }, [chats])
@@ -421,6 +422,7 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
     // ── 3. Stream the response ─────────────────────────────────────────────
     const currentProvider = getProviderForModel(selectedModel)
     const userApiKey = connectedProviderKeys[currentProvider] || null
+    aiResponseRef.current = ''  // reset accumulator for this new response
 
     try {
       await streamChat(
@@ -428,29 +430,33 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
         {
           onSources: sources =>
             setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, sources } : m)),
-          onToken: token =>
+          onToken: token => {
+            aiResponseRef.current += token  // accumulate in ref (not state) so onDone can read it
             setMessages(prev => prev.map(m =>
               m.id === assistantId ? { ...m, content: m.content + token } : m
-            )),
+            ))
+          },
           onDone: confidence => {
-            let finalContent = ''
+            const finalContent = aiResponseRef.current  // read accumulated response (bypasses React batching)
+            aiResponseRef.current = ''
             setMessages(prev => prev.map(m => {
               if (m.id === assistantId) {
                 if (m.content && !originalMsgsRef.current[m.id]) originalMsgsRef.current[m.id] = m.content
-                finalContent = m.content
                 return { ...m, confidence, streaming: false }
               }
               return m
             }))
             setStreaming(false)
             updateUser({ daily_usage: (user?.daily_usage || 0) + 1 })
-            // Fetch follow-up suggestions asynchronously (non-blocking)
+            // Fetch follow-up suggestions and save memory (non-blocking)
             if (finalContent) {
               setSuggestions([])
               getSuggestions(trimmed, finalContent, i18n.language)
                 .then(({ data }) => setSuggestions(data.suggestions || []))
                 .catch(() => {})
             }
+            // Save Q&A facts to long-term memory — now sends real AI response (not empty string)
+            extractMemory(trimmed, finalContent).catch(() => {})
           },
           onError: err => {
             setMessages(prev => prev.map(m =>
