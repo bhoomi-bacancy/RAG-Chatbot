@@ -51,8 +51,6 @@ function loadImage(src) {
   })
 }
 
-// Encodes an array of data-URL frames into an animated GIF data URL.
-// Uses gifenc — no web workers, fully synchronous after image decode.
 async function encodeAnimatedGif(frameDataUrls, gw, gh, delayMs = 400) {
   const canvas = document.createElement('canvas')
   canvas.width = gw
@@ -74,7 +72,6 @@ async function encodeAnimatedGif(frameDataUrls, gw, gh, delayMs = 400) {
   gif.finish()
   const bytes = gif.bytesView()
 
-  // Chunked btoa to avoid call-stack overflow on large buffers
   let binary = ''
   const chunk = 8192
   for (let i = 0; i < bytes.length; i += chunk) {
@@ -99,7 +96,6 @@ export default function VideoGenPage() {
     } catch { return [] }
   })
 
-  // Keep last 4 GIFs — they can be large, stay safe with localStorage quota
   useEffect(() => {
     try {
       const toStore = items.filter(it => it.status !== 'loading').slice(0, 4)
@@ -112,16 +108,14 @@ export default function VideoGenPage() {
       setItems(prev => prev.map(it => it.id === id ? { ...it, loadStatus: msg } : it))
 
     try {
-      // Phase 1: fetch frames from Pollinations.ai
       const frameUrls = []
       for (let i = 0; i < numFrames; i++) {
         onStatus(t('video.fetchingFrame', { n: i + 1, total: numFrames }))
-        if (i > 0) await new Promise(r => setTimeout(r, 3000)) // avoid 429 rate limit
+        if (i > 0) await new Promise(r => setTimeout(r, 3000))
         const dataUrl = await fetchFrameAsDataUrl(fullPrompt, sizeObj.pw, sizeObj.ph)
         frameUrls.push(dataUrl)
       }
 
-      // Phase 2: encode into animated GIF
       onStatus(t('video.encodingGif'))
       const gifUrl = await encodeAnimatedGif(frameUrls, sizeObj.gw, sizeObj.gh)
 
@@ -163,7 +157,7 @@ export default function VideoGenPage() {
   const anyLoading = items.some(it => it.status === 'loading')
 
   return (
-    <div className="flex-1 flex flex-col bg-white min-h-0 overflow-y-auto">
+    <div className="flex-1 flex flex-col bg-white dark:bg-zinc-950 min-h-0 overflow-y-auto">
       <div className="max-w-3xl mx-auto w-full px-6 py-8">
 
         {/* Header */}
@@ -172,32 +166,32 @@ export default function VideoGenPage() {
             <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center">
               <Film className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-xl font-semibold text-zinc-900">{t('video.title')}</h1>
+            <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">{t('video.title')}</h1>
           </div>
-          <p className="text-sm text-zinc-500 ml-12">{t('video.subtitle')}</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 ml-12">{t('video.subtitle')}</p>
         </div>
 
         {/* Prompt card */}
-        <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-5 space-y-4 mb-4">
+        <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 space-y-4 mb-4">
           <div>
-            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">{t('video.promptLabel')}</p>
+            <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">{t('video.promptLabel')}</p>
             <textarea
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate() } }}
               placeholder={t('video.placeholder')}
               rows={3}
-              className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-800 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent resize-none"
+              className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-800 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent resize-none"
             />
           </div>
 
           {/* Style */}
           <div>
-            <p className="text-xs text-zinc-400 mb-2">{t('video.styleLabel')}</p>
+            <p className="text-xs text-zinc-400 dark:text-zinc-500 mb-2">{t('video.styleLabel')}</p>
             <div className="flex flex-wrap gap-2">
               {STYLES.map(s => (
                 <button key={s.value} onClick={() => setStyle(s)}
-                  className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition ${style.value === s.value ? 'bg-orange-500 border-orange-500 text-white' : 'border-zinc-200 text-zinc-600 hover:border-orange-300 hover:text-orange-600'}`}>
+                  className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition ${style.value === s.value ? 'bg-orange-500 border-orange-500 text-white' : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-orange-300 hover:text-orange-600'}`}>
                   {t(s.tKey)}
                 </button>
               ))}
@@ -206,11 +200,11 @@ export default function VideoGenPage() {
 
           {/* Size */}
           <div>
-            <p className="text-xs text-zinc-400 mb-2">{t('image.sizeLabel')}</p>
+            <p className="text-xs text-zinc-400 dark:text-zinc-500 mb-2">{t('image.sizeLabel')}</p>
             <div className="flex flex-wrap gap-2">
               {SIZES.map(s => (
                 <button key={s.value} onClick={() => setSize(s)}
-                  className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition ${size.value === s.value ? 'bg-orange-500 border-orange-500 text-white' : 'border-zinc-200 text-zinc-600 hover:border-orange-300 hover:text-orange-600'}`}>
+                  className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition ${size.value === s.value ? 'bg-orange-500 border-orange-500 text-white' : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-orange-300 hover:text-orange-600'}`}>
                   {t(s.tKey)} <span className="opacity-60">{s.aspect}</span>
                 </button>
               ))}
@@ -219,11 +213,11 @@ export default function VideoGenPage() {
 
           {/* Frame count */}
           <div>
-            <p className="text-xs text-zinc-400 mb-2">{t('video.framesLabel')}</p>
+            <p className="text-xs text-zinc-400 dark:text-zinc-500 mb-2">{t('video.framesLabel')}</p>
             <div className="flex gap-2">
               {FRAME_COUNTS.map(n => (
                 <button key={n} onClick={() => setFrames(n)}
-                  className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition ${frames === n ? 'bg-orange-500 border-orange-500 text-white' : 'border-zinc-200 text-zinc-600 hover:border-orange-300 hover:text-orange-600'}`}>
+                  className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition ${frames === n ? 'bg-orange-500 border-orange-500 text-white' : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-orange-300 hover:text-orange-600'}`}>
                   {n} {t('video.frames')}
                 </button>
               ))}
@@ -231,13 +225,13 @@ export default function VideoGenPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">{t('video.freeBadge')}</span>
-            <span className="text-xs text-zinc-400">{t('video.via')}</span>
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400">{t('video.freeBadge')}</span>
+            <span className="text-xs text-zinc-400 dark:text-zinc-500">{t('video.via')}</span>
           </div>
         </div>
 
         <button onClick={handleGenerate} disabled={!prompt.trim() || anyLoading}
-          className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-200 disabled:text-zinc-400 disabled:cursor-not-allowed text-white font-semibold text-sm flex items-center justify-center gap-2 transition mb-8">
+          className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-200 dark:disabled:bg-zinc-800 disabled:text-zinc-400 dark:disabled:text-zinc-600 disabled:cursor-not-allowed text-white font-semibold text-sm flex items-center justify-center gap-2 transition mb-8">
           <Film className="w-4 h-4" />
           {anyLoading ? t('video.generatingBtn') : t('video.generateBtn')}
         </button>
@@ -246,7 +240,7 @@ export default function VideoGenPage() {
         {items.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+              <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
                 {t('video.history')}
                 <span className="ml-1.5 text-[10px] bg-orange-500 text-white rounded-full px-1.5 py-0.5 font-bold">{items.length}</span>
               </p>
@@ -254,7 +248,7 @@ export default function VideoGenPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {items.map(it => (
-                <div key={it.id} className="rounded-2xl overflow-hidden border border-zinc-200 bg-zinc-50 relative group min-h-[200px] flex items-center justify-center">
+                <div key={it.id} className="rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 relative group min-h-[200px] flex items-center justify-center">
                   {it.status === 'error' ? (
                     <div className="text-center p-4 space-y-2">
                       <p className="text-xs text-red-500">{it.error || t('video.failed')}</p>
@@ -266,7 +260,7 @@ export default function VideoGenPage() {
                   ) : it.status === 'loading' ? (
                     <div className="flex flex-col items-center justify-center gap-2 px-4 text-center">
                       <Loader2 className="w-7 h-7 text-orange-500 animate-spin" />
-                      <p className="text-xs text-zinc-500">{it.loadStatus}</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">{it.loadStatus}</p>
                     </div>
                   ) : (
                     <>

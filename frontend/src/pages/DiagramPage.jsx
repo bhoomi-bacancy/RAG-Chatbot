@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import mermaid from 'mermaid'
 import {
   GitFork, Sparkles, Copy, Download, Check, Loader2,
@@ -16,38 +16,39 @@ mermaid.initialize({
 })
 
 // ── Templates ─────────────────────────────────────────────────────────────────
-const TEMPLATES = {
-  Flowchart: `graph TD
-    A([Patient Arrives]) --> B[Registration]
-    B --> C[Triage Assessment]
-    C --> D{Severity?}
-    D -->|Critical| E[Emergency Room]
-    D -->|Moderate| F[Urgent Care]
-    D -->|Minor| G[General OPD]
-    E --> H[Treatment]
+function getTemplates(t) {
+  return {
+    Flowchart: `graph TD
+    A([${t('diagram.tplcPatientArrives')}]) --> B[${t('diagram.tplcRegistration')}]
+    B --> C[${t('diagram.tplcTriage')}]
+    C --> D{${t('diagram.tplcSeverity')}}
+    D -->|${t('diagram.tplcCritical')}| E[${t('diagram.tplcEmergency')}]
+    D -->|${t('diagram.tplcModerate')}| F[${t('diagram.tplcUrgent')}]
+    D -->|${t('diagram.tplcMinor')}| G[${t('diagram.tplcOPD')}]
+    E --> H[${t('diagram.tplcTreatment')}]
     F --> H
     G --> H
-    H --> I{Admitted?}
-    I -->|Yes| J[Ward / ICU]
-    I -->|No| K([Discharge])
+    H --> I{${t('diagram.tplcAdmitted')}}
+    I -->|${t('diagram.tplcYes')}| J[${t('diagram.tplcWard')}]
+    I -->|${t('diagram.tplcNo')}| K([${t('diagram.tplcDischarge')}])
     J --> K`,
 
-  Sequence: `sequenceDiagram
-    participant P as Patient
-    participant D as Doctor
-    participant L as Laboratory
-    participant Ph as Pharmacy
+    Sequence: `sequenceDiagram
+    participant P as ${t('diagram.tplcPatient')}
+    participant D as ${t('diagram.tplcDoctor')}
+    participant L as ${t('diagram.tplcLaboratory')}
+    participant Ph as ${t('diagram.tplcPharmacy')}
 
-    P->>D: Book Appointment
-    D->>P: Conduct Examination
-    D->>L: Order Tests
-    L-->>D: Return Results
-    D->>D: Analyze Results
-    D->>P: Share Diagnosis
-    D->>Ph: Send Prescription
-    Ph-->>P: Dispense Medication`,
+    P->>D: ${t('diagram.tplcBookAppt')}
+    D->>P: ${t('diagram.tplcConductExam')}
+    D->>L: ${t('diagram.tplcOrderTests')}
+    L-->>D: ${t('diagram.tplcReturnResults')}
+    D->>D: ${t('diagram.tplcAnalyzeResults')}
+    D->>P: ${t('diagram.tplcShareDiagnosis')}
+    D->>Ph: ${t('diagram.tplcSendPrescription')}
+    Ph-->>P: ${t('diagram.tplcDispenseMed')}`,
 
-  'Class Diagram': `classDiagram
+    'Class Diagram': `classDiagram
     class Patient {
         +String id
         +String name
@@ -75,7 +76,7 @@ const TEMPLATES = {
     Doctor "1" --> "many" Prescription
     Prescription "1" *-- "many" Medication`,
 
-  'ER Diagram': `erDiagram
+    'ER Diagram': `erDiagram
     PATIENT {
         uuid id PK
         string name
@@ -104,35 +105,46 @@ const TEMPLATES = {
     DOCTOR  ||--o{ APPOINTMENT : "conducts"
     APPOINTMENT ||--o| DIAGNOSIS : "results in"`,
 
-  Gantt: `gantt
-    title Patient Recovery Timeline
+    Gantt: `gantt
+    title ${t('diagram.tplcGanttTitle')}
     dateFormat  YYYY-MM-DD
-    section Pre-Op
-    Consultation        :done,    a1, 2024-01-01, 2d
-    Pre-op Tests        :done,    a2, after a1, 3d
-    section Surgery
-    Operation           :active,  b1, 2024-01-06, 1d
-    section Recovery
-    ICU Monitoring      :         c1, after b1, 3d
-    General Ward        :         c2, after c1, 5d
-    Physiotherapy       :         c3, after c2, 7d
-    Discharge           :milestone, c4, after c3, 0d`,
+    section ${t('diagram.tplcPreOp')}
+    ${t('diagram.tplcConsultation')}        :done,    a1, 2024-01-01, 2d
+    ${t('diagram.tplcPreOpTests')}        :done,    a2, after a1, 3d
+    section ${t('diagram.tplcSurgery')}
+    ${t('diagram.tplcOperation')}           :active,  b1, 2024-01-06, 1d
+    section ${t('diagram.tplcRecovery')}
+    ${t('diagram.tplcICUMonitoring')}      :         c1, after b1, 3d
+    ${t('diagram.tplcGeneralWard')}        :         c2, after c1, 5d
+    ${t('diagram.tplcPhysiotherapy')}       :         c3, after c2, 7d
+    ${t('diagram.tplcDischarge')}           :milestone, c4, after c3, 0d`,
 
-  Pie: `pie title Diagnosis Distribution
-    "Cardiovascular" : 30
-    "Respiratory"    : 22
-    "Neurological"   : 18
-    "Orthopedic"     : 15
-    "Gastrointestinal": 10
-    "Other"          : 5`,
+    Pie: `pie title ${t('diagram.tplcPieTitle')}
+    "${t('diagram.tplcCardio')}" : 30
+    "${t('diagram.tplcRespiratory')}"    : 22
+    "${t('diagram.tplcNeuro')}"   : 18
+    "${t('diagram.tplcOrtho')}"     : 15
+    "${t('diagram.tplcGastro')}": 10
+    "${t('diagram.tplcOther')}"          : 5`,
+  }
 }
 
 const MERMAID_THEMES = ['default', 'forest', 'dark', 'neutral', 'base']
 
+const TEMPLATE_T_KEYS = {
+  'Flowchart':    'diagram.tplFlowchart',
+  'Sequence':     'diagram.tplSequence',
+  'Class Diagram':'diagram.tplClass',
+  'ER Diagram':   'diagram.tplER',
+  'Gantt':        'diagram.tplGantt',
+  'Pie':          'diagram.tplPie',
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function DiagramPage({ onOpenSidebar }) {
   const { t } = useTranslation()
-  const [code, setCode]           = useState(TEMPLATES['Flowchart'])
+  const templates = useMemo(() => getTemplates(t), [t])
+  const [code, setCode]           = useState(() => getTemplates(t)['Flowchart'])
   const [svg, setSvg]             = useState('')
   const [parseError, setParseError] = useState(null)
   const [prompt, setPrompt]       = useState('')
@@ -169,6 +181,13 @@ export default function DiagramPage({ onOpenSidebar }) {
     return () => clearTimeout(timer)
   }, [code, theme, renderDiagram])
 
+  // Update active template code when language changes
+  useEffect(() => {
+    if (activeTemplate) {
+      setCode(templates[activeTemplate])
+    }
+  }, [templates, activeTemplate])
+
   // Close theme dropdown on outside click
   useEffect(() => {
     if (!themeOpen) return
@@ -187,7 +206,7 @@ export default function DiagramPage({ onOpenSidebar }) {
       setCode(data.mermaid_code)
       setActiveTemplate(null)
     } catch (err) {
-      setAiError(err.response?.data?.detail || 'Generation failed. Please try again.')
+      setAiError(err.response?.data?.detail || t('diagram.generateError'))
     } finally {
       setGenerating(false)
     }
@@ -195,7 +214,7 @@ export default function DiagramPage({ onOpenSidebar }) {
 
   // ── Template picker ────────────────────────────────────────────────────────
   const applyTemplate = name => {
-    setCode(TEMPLATES[name])
+    setCode(templates[name])
     setActiveTemplate(name)
     setAiError(null)
   }
@@ -243,15 +262,15 @@ export default function DiagramPage({ onOpenSidebar }) {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white min-h-0 overflow-hidden">
+    <div className="flex-1 flex flex-col bg-white dark:bg-zinc-950 min-h-0 overflow-hidden">
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <div className="shrink-0 px-4 sm:px-6 pt-5 pb-4 border-b border-zinc-100">
+      <div className="shrink-0 px-4 sm:px-6 pt-5 pb-4 border-b border-zinc-100 dark:border-zinc-800">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
               onClick={onOpenSidebar}
-              className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 transition shrink-0"
+              className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition shrink-0"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -259,8 +278,8 @@ export default function DiagramPage({ onOpenSidebar }) {
               <GitFork className="w-5 h-5 text-orange-500" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-zinc-900">{t('diagram.title')}</h1>
-              <p className="text-sm text-zinc-400">{t('diagram.subtitle')}</p>
+              <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">{t('diagram.title')}</h1>
+              <p className="text-sm text-zinc-400 dark:text-zinc-500">{t('diagram.subtitle')}</p>
             </div>
           </div>
 
@@ -270,18 +289,18 @@ export default function DiagramPage({ onOpenSidebar }) {
             <div className="relative hidden sm:block" ref={themeRef}>
               <button
                 onClick={() => setThemeOpen(v => !v)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-600 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
               >
                 <span className="capitalize">{theme}</span>
                 <ChevronDown className="w-3 h-3" />
               </button>
               {themeOpen && (
-                <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-zinc-200 rounded-xl shadow-lg py-1 min-w-[130px]">
+                <div className="absolute right-0 top-full mt-1 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-lg py-1 min-w-[130px]">
                   {MERMAID_THEMES.map(t => (
                     <button
                       key={t}
                       onClick={() => { setTheme(t); setThemeOpen(false) }}
-                      className={`w-full text-left px-3 py-1.5 text-xs capitalize hover:bg-zinc-50 transition ${t === theme ? 'text-orange-500 font-medium' : 'text-zinc-700'}`}
+                      className={`w-full text-left px-3 py-1.5 text-xs capitalize hover:bg-zinc-50 dark:hover:bg-zinc-800 transition ${t === theme ? 'text-orange-500 font-medium' : 'text-zinc-700 dark:text-zinc-300'}`}
                     >
                       {t}
                     </button>
@@ -292,7 +311,7 @@ export default function DiagramPage({ onOpenSidebar }) {
 
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-600 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
               <span className="hidden sm:inline">{copied ? t('diagram.copied') : t('diagram.copy')}</span>
@@ -301,7 +320,7 @@ export default function DiagramPage({ onOpenSidebar }) {
             <button
               onClick={handleExportSVG}
               disabled={!svg}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-600 border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-40 transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 transition"
             >
               <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">SVG</span>
@@ -320,14 +339,14 @@ export default function DiagramPage({ onOpenSidebar }) {
 
         {/* ── AI Prompt Bar ──────────────────────────────────────────────── */}
         <div className="mt-4 flex gap-2">
-          <div className="flex-1 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-100 transition">
+          <div className="flex-1 flex items-center gap-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-100 dark:focus-within:ring-orange-900/40 transition">
             <Sparkles className="w-4 h-4 text-orange-500 shrink-0" />
             <input
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleGenerate()}
               placeholder={t('diagram.placeholder')}
-              className="flex-1 bg-transparent text-sm text-zinc-800 placeholder-zinc-400 outline-none"
+              className="flex-1 bg-transparent text-sm text-zinc-800 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none"
               disabled={generating}
             />
             {prompt && (
@@ -356,18 +375,18 @@ export default function DiagramPage({ onOpenSidebar }) {
 
         {/* ── Template buttons ───────────────────────────────────────────── */}
         <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
-          <span className="text-xs text-zinc-400 shrink-0">{t('diagram.templates')}</span>
-          {Object.keys(TEMPLATES).map(name => (
+          <span className="text-xs text-zinc-400 dark:text-zinc-500 shrink-0">{t('diagram.templates')}</span>
+          {Object.keys(TEMPLATE_T_KEYS).map(name => (
             <button
               key={name}
               onClick={() => applyTemplate(name)}
               className={`shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium transition ${
                 activeTemplate === name
-                  ? 'bg-orange-100 text-orange-600 border border-orange-200'
-                  : 'bg-zinc-100 text-zinc-600 border border-zinc-200 hover:bg-zinc-200'
+                  ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700'
               }`}
             >
-              {name}
+              {t(TEMPLATE_T_KEYS[name] || name)}
             </button>
           ))}
         </div>
@@ -377,20 +396,20 @@ export default function DiagramPage({ onOpenSidebar }) {
       <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
 
         {/* Code Editor */}
-        <div className="lg:w-[45%] shrink-0 flex flex-col border-b lg:border-b-0 lg:border-r border-zinc-100 min-h-0">
-          <div className="flex items-center justify-between px-4 py-2 bg-zinc-50 border-b border-zinc-100">
-            <span className="text-xs font-medium text-zinc-500">{t('diagram.mermaidCode')}</span>
-            <span className="text-xs text-zinc-400">{t('diagram.lines', { count: code.split('\n').length })}</span>
+        <div className="lg:w-[45%] shrink-0 flex flex-col border-b lg:border-b-0 lg:border-r border-zinc-100 dark:border-zinc-800 min-h-0">
+          <div className="flex items-center justify-between px-4 py-2 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800">
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{t('diagram.mermaidCode')}</span>
+            <span className="text-xs text-zinc-400 dark:text-zinc-500">{t('diagram.lines', { count: code.split('\n').length })}</span>
           </div>
           <textarea
             value={code}
             onChange={e => { setCode(e.target.value); setActiveTemplate(null) }}
             spellCheck={false}
-            className="flex-1 resize-none p-4 font-mono text-sm text-zinc-800 bg-white outline-none leading-relaxed min-h-[200px] lg:min-h-0"
-            placeholder="Enter Mermaid diagram code here…"
+            className="flex-1 resize-none p-4 font-mono text-sm text-zinc-800 dark:text-zinc-100 bg-white dark:bg-zinc-950 outline-none leading-relaxed min-h-[200px] lg:min-h-0"
+            placeholder={t('diagram.codePlaceholder')}
           />
           {parseError && (
-            <div className="shrink-0 flex items-start gap-2 px-4 py-2.5 bg-red-50 border-t border-red-100 text-xs text-red-600">
+            <div className="shrink-0 flex items-start gap-2 px-4 py-2.5 bg-red-50 dark:bg-red-950/40 border-t border-red-100 dark:border-red-900/40 text-xs text-red-600 dark:text-red-400">
               <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
               <span className="break-all">{parseError}</span>
             </div>
@@ -399,11 +418,11 @@ export default function DiagramPage({ onOpenSidebar }) {
 
         {/* Preview */}
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex items-center justify-between px-4 py-2 bg-zinc-50 border-b border-zinc-100">
-            <span className="text-xs font-medium text-zinc-500">{t('diagram.livePreview')}</span>
-            {svg && <span className="text-xs text-green-600 font-medium">{t('diagram.valid')}</span>}
+          <div className="flex items-center justify-between px-4 py-2 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800">
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{t('diagram.livePreview')}</span>
+            {svg && <span className="text-xs text-green-600 dark:text-green-400 font-medium">{t('diagram.valid')}</span>}
           </div>
-          <div className="flex-1 overflow-auto p-6 flex items-start justify-center bg-white min-h-[200px]">
+          <div className="flex-1 overflow-auto p-6 flex items-start justify-center bg-white dark:bg-zinc-950 min-h-[200px]">
             {svg ? (
               <div
                 className="max-w-full [&_svg]:max-w-full [&_svg]:h-auto"

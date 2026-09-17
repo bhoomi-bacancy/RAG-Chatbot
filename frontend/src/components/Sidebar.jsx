@@ -637,8 +637,8 @@ export default function Sidebar({
         </div>
       )}
 
-      {/* Spacer for image generation / diagrams / memory view */}
-      {(currentView === 'image-edit' || currentView === 'diagrams' || currentView === 'memory') && <div className="flex-1" />}
+      {/* Spacer for image generation / diagrams / memory / gif-gen view */}
+      {(currentView === 'image-edit' || currentView === 'diagrams' || currentView === 'memory' || currentView === 'video-gen') && <div className="flex-1" />}
 
       {/* Language + Theme */}
       <div className="px-2 pb-1 flex items-center gap-1">
