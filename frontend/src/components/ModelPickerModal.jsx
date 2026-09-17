@@ -5,17 +5,15 @@ export const PROVIDERS = [
   {
     id: 'groq',
     name: 'Groq',
-    tagline: 'Free · No setup needed',
+    tagline: 'Free · Compound, GPT OSS',
     free: true,
     accentCls: 'text-orange-600 bg-orange-50 border-orange-200',
     dotCls: 'bg-orange-500',
     models: [
-      { id: 'groq/compound-mini',  name: 'Compound Mini', badge: 'Default',      badgeCls: 'bg-orange-100 text-orange-700',  Icon: Zap,   desc: 'Fast everyday queries',          vision: false },
-      { id: 'groq/compound',      name: 'Compound',      badge: 'Balanced',     badgeCls: 'bg-blue-100 text-blue-700',      Icon: Brain, desc: 'Better reasoning + tool use',    vision: false },
-      { id: 'openai/gpt-oss-20b', name: 'GPT OSS 20B',  badge: 'Fast',         badgeCls: 'bg-sky-100 text-sky-700',        Icon: Zap,   desc: 'OpenAI OSS — ultra-fast',        vision: false },
-      { id: 'openai/gpt-oss-120b',name: 'GPT OSS 120B', badge: 'Powerful',     badgeCls: 'bg-indigo-100 text-indigo-700',  Icon: Brain, desc: 'OpenAI OSS — most capable',     vision: false },
-      { id: 'qwen/qwen3.6-27b',   name: 'Qwen 3 27B',   badge: 'Multilingual', badgeCls: 'bg-teal-100 text-teal-700',      Icon: Cpu,   desc: 'Great multilingual support',     vision: false },
-      { id: 'qwen/qwen3.8-27b',   name: 'Qwen 3.8 27B', badge: 'New',          badgeCls: 'bg-cyan-100 text-cyan-700',      Icon: Cpu,   desc: 'Latest Qwen — improved reasoning', vision: false },
+      { id: 'groq/compound-mini',  name: 'Compound Mini',  badge: 'Default',  badgeCls: 'bg-orange-100 text-orange-700',  Icon: Zap,   desc: 'Fast everyday queries',        vision: false },
+      { id: 'groq/compound',       name: 'Compound',       badge: 'Balanced', badgeCls: 'bg-blue-100 text-blue-700',      Icon: Brain, desc: 'Better reasoning + tool use',  vision: false },
+      { id: 'openai/gpt-oss-20b',  name: 'GPT OSS 20B',   badge: 'Fast',     badgeCls: 'bg-sky-100 text-sky-700',        Icon: Zap,   desc: 'OpenAI OSS — fast & efficient', vision: false },
+      { id: 'openai/gpt-oss-120b', name: 'GPT OSS 120B',  badge: 'Powerful', badgeCls: 'bg-indigo-100 text-indigo-700',  Icon: Brain, desc: 'OpenAI OSS — most capable',    vision: false },
     ],
   },
   {
@@ -66,16 +64,14 @@ export const PROVIDERS = [
   {
     id: 'google',
     name: 'Google',
-    tagline: 'Gemini 2.0 Flash, 1.5 Pro',
+    tagline: 'Gemini 2.5 Flash',
     accentCls: 'text-blue-700 bg-blue-50 border-blue-200',
     dotCls: 'bg-blue-500',
     iconBg: 'bg-blue-600',
     iconLabel: 'G',
     keyUrl: 'https://aistudio.google.com/apikey',
     models: [
-      { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash Exp', badge: 'Latest',  badgeCls: 'bg-blue-100 text-blue-700',    Icon: Zap,   desc: 'Fastest Gemini — vision + text',   vision: true },
-      { id: 'gemini-2.0-flash',     name: 'Gemini 2.0 Flash',     badge: 'Stable',  badgeCls: 'bg-sky-100 text-sky-700',      Icon: Zap,   desc: 'Reliable multimodal model',         vision: true },
-      { id: 'gemini-1.5-pro',       name: 'Gemini 1.5 Pro',       badge: 'Long Context', badgeCls: 'bg-indigo-100 text-indigo-700',Icon: Brain, desc: '1M token context window',      vision: true },
+      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', badge: 'Latest', badgeCls: 'bg-blue-100 text-blue-700', Icon: Zap, desc: 'Fast multimodal — vision + text', vision: true },
     ],
   },
 ]

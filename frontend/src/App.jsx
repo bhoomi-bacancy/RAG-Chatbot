@@ -8,6 +8,7 @@ import Sidebar from './components/Sidebar'
 import ChatWindow from './components/ChatWindow'
 import DocumentsPage from './pages/DocumentsPage'
 import ImageEditPage from './pages/ImageEditPage'
+import VideoGenPage from './pages/VideoGenPage'
 import DiagramPage from './pages/DiagramPage'
 import MemoryPage from './pages/MemoryPage'
 import SharedChatPage from './pages/SharedChatPage'
@@ -204,6 +205,8 @@ function AppShell() {
         <DocumentsPage onOpenSidebar={() => setSidebarOpen(true)} />
       ) : view === 'image-edit' ? (
         <ImageEditPage onOpenSidebar={() => setSidebarOpen(true)} />
+      ) : view === 'video-gen' ? (
+        <VideoGenPage onOpenSidebar={() => setSidebarOpen(true)} />
       ) : view === 'diagrams' ? (
         <DiagramPage onOpenSidebar={() => setSidebarOpen(true)} />
       ) : view === 'memory' ? (

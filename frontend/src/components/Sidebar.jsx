@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Bot, Plus, Trash2, MessageSquare, LogOut, Pencil, Check, X,
   FolderOpen, Wand2, FolderPlus, ChevronRight, ChevronDown,
-  Folder, Camera, Loader2, GitFork, Sun, Moon, Shield, Brain,
+  Folder, Camera, Loader2, GitFork, Sun, Moon, Shield, Film,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -508,6 +508,17 @@ export default function Sidebar({
           {t('sidebar.imageGeneration')}
         </button>
         <button
+          onClick={() => { onSetView?.('video-gen'); onClose?.() }}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition w-full text-left ${
+            currentView === 'video-gen'
+              ? 'bg-zinc-800 text-white'
+              : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+          }`}
+        >
+          <Film className="w-4 h-4" />
+          {t('sidebar.videoGeneration')}
+        </button>
+        <button
           onClick={() => { onSetView?.('diagrams'); onClose?.() }}
           className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition w-full text-left ${
             currentView === 'diagrams'
@@ -517,17 +528,6 @@ export default function Sidebar({
         >
           <GitFork className="w-4 h-4 text-orange-400" />
           {t('sidebar.diagrams')}
-        </button>
-        <button
-          onClick={() => { onSetView?.('memory'); onClose?.() }}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition w-full text-left ${
-            currentView === 'memory'
-              ? 'bg-zinc-800 text-white'
-              : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
-          }`}
-        >
-          <Brain className="w-4 h-4 text-violet-400" />
-          Memory
         </button>
         {user?.role === 'admin' && (
           <a

@@ -51,7 +51,7 @@ def get_provider(model: str) -> str:
     # Groq-namespaced models (groq/, openai/gpt-oss-*, qwen/, etc.) all go via Groq API
     if model.startswith("groq/"):       return "groq"
     if model.startswith("openai/"):     return "groq"   # gpt-oss-* are Groq-hosted
-    if model.startswith("qwen/"):       return "groq"
+    if model.startswith("compound"):    return "groq"
     if model.startswith("meta-llama/"): return "groq"
     # User-provided keys for other providers
     if model.startswith("gpt-"):        return "openai"
@@ -219,9 +219,13 @@ def build_messages(query: str, chunks: List[dict], history: List[dict], language
 
 # ── Async token streamers per provider ────────────────────────────────────────
 
+_GROQ_MODEL_ALIASES: dict = {}  # compound-beta-* aliases removed; Groq now uses groq/compound[-mini]
+
 async def _stream_tokens_groq(messages: List[dict], model: str) -> AsyncIterator[str]:
+    model_name = model.removeprefix("groq/")
+    model_name = _GROQ_MODEL_ALIASES.get(model_name, model_name)
     stream = await async_groq_client.chat.completions.create(
-        model=model, max_tokens=2048, messages=messages, stream=True
+        model=model_name, max_tokens=2048, messages=messages, stream=True
     )
     async for chunk in stream:
         delta = chunk.choices[0].delta.content
@@ -539,7 +543,7 @@ async def stream_response(
 
         # Billing / quota exhausted — check FIRST so it doesn't fall into rate-limit or unknown
         _is_billing = (
-            "insufficient_quota" in err_str or          # OpenAI: out of credits
+            "insufficient_quota" in err_str or           # OpenAI: out of credits
             "exceeded your current quota" in err_str or  # OpenAI: free-tier exhausted
             "billing hard limit" in err_str or           # OpenAI: hard spend cap hit
             "insufficient_funds" in err_str or           # OpenAI / generic
@@ -549,6 +553,9 @@ async def stream_response(
             "credit_balance_too_low" in err_str or       # Anthropic error code
             "resource_exhausted" in err_str or           # Google: RESOURCE_EXHAUSTED
             "billing account" in err_str or              # Google: billing not set up
+            "tokens_per_day" in err_str or               # Groq: free-tier daily token limit
+            "free_tier" in err_str or                    # Groq: free-tier exhausted
+            "upgrade your plan" in err_str or            # Generic billing prompt
             ("quota" in err_str and "billing" in err_str)
         )
 
@@ -565,11 +572,12 @@ async def stream_response(
                 "openai":    "https://platform.openai.com/account/billing",
                 "anthropic": "https://console.anthropic.com/settings/billing",
                 "google":    "https://aistudio.google.com",
-                "groq":      "https://console.groq.com",
+                "groq":      "https://console.groq.com/settings/billing",
             }.get(provider, f"the {provider.title()} dashboard")
             err_msg = (
-                f"⚠️ Your {provider.title()} account has run out of credits or has a billing issue. "
-                f"Please add credits or upgrade your plan at {dashboard}."
+                f"⚠️ No credits remaining on your {provider.title()} account.\n\n"
+                f"Your free quota or credit balance has been exhausted. "
+                f"To continue, please add credits or upgrade your plan:\n{dashboard}"
             )
         elif _is_auth:
             err_msg = f"⚠️ Your {provider.title()} API key is invalid or expired. Please reconnect in the model picker."

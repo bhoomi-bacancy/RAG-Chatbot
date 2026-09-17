@@ -128,6 +128,7 @@ export const editImage = ({ image_url, prompt, lora_scale }) =>
 export const generateImage = ({ prompt, image_size = 'square' }) =>
   api.post('/image/generate', { prompt, image_size })
 
+
 // Client-side image editing — calls HuggingFace directly from the browser so
 // Vercel's 60s function timeout can't kill the request (HF takes 60-120s).
 const _HF_PIX2PIX = 'https://api-inference.huggingface.co/models/timbrooks/instruct-pix2pix'
