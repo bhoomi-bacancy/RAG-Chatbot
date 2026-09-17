@@ -23,10 +23,10 @@ def _hf_headers() -> dict:
     return headers
 
 
-async def _generate_video(prompt: str, max_retries: int = 4) -> bytes:
+async def _generate_video(prompt: str, max_retries: int = 3) -> bytes:
     last_error = "Unknown error"
 
-    async with httpx.AsyncClient(timeout=180, follow_redirects=True) as client:
+    async with httpx.AsyncClient(timeout=240, follow_redirects=True) as client:
         for attempt in range(max_retries):
             try:
                 resp = await client.post(
@@ -36,11 +36,12 @@ async def _generate_video(prompt: str, max_retries: int = 4) -> bytes:
                 )
             except httpx.TimeoutException:
                 last_error = "Request timed out"
-                await asyncio.sleep(15)
+                await asyncio.sleep(10)
                 continue
 
             ct = resp.headers.get("content-type", "")
-            if resp.status_code == 200 and "video" in ct:
+            # HuggingFace may return video/mp4 or application/octet-stream
+            if resp.status_code == 200 and ("video" in ct or "octet-stream" in ct):
                 return resp.content
 
             body = resp.text[:400]
@@ -51,7 +52,7 @@ async def _generate_video(prompt: str, max_retries: int = 4) -> bytes:
             )
             if is_busy:
                 wait = 20 + attempt * 15
-                last_error = f"Model busy (attempt {attempt + 1}/{max_retries}), retrying in {wait}s"
+                last_error = f"Model loading (attempt {attempt + 1}/{max_retries}), retrying in {wait}s"
                 await asyncio.sleep(wait)
                 continue
 
@@ -72,5 +73,12 @@ async def generate_video(
     request: VideoGenerateRequest,
     current_user: dict = Depends(get_current_user),
 ):
-    # Generation is handled client-side via HuggingFace to avoid Vercel's 60s timeout
-    raise HTTPException(status_code=501, detail="Use client-side generation.")
+    """Generate a short video clip from a text prompt via HuggingFace (free)."""
+    try:
+        video_bytes = await _generate_video(request.prompt)
+        out_b64 = base64.b64encode(video_bytes).decode()
+        return {"video_url": f"data:video/mp4;base64,{out_b64}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)[:300])

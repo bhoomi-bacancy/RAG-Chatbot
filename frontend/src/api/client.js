@@ -128,6 +128,11 @@ export const editImage = ({ image_url, prompt, lora_scale }) =>
 export const generateImage = ({ prompt, image_size = 'square' }) =>
   api.post('/image/generate', { prompt, image_size })
 
+// ── Video ─────────────────────────────────────────────────────────────────────
+
+export const generateVideo = ({ prompt }) =>
+  api.post('/video/generate', { prompt }, { timeout: 270000 })
+
 
 // Client-side image editing — calls HuggingFace directly from the browser so
 // Vercel's 60s function timeout can't kill the request (HF takes 60-120s).

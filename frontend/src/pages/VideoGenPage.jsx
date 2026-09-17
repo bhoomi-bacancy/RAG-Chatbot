@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Download, Film } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
-
-const HF_VIDEO_URL = 'https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b'
+import { generateVideo } from '../api/client'
 
 const STYLES = [
   { tKey: 'video.styleCinematic',   value: 'cinematic',   suffix: 'cinematic, dramatic lighting' },
@@ -11,61 +10,6 @@ const STYLES = [
   { tKey: 'video.styleAnimation',   value: 'animation',   suffix: 'animated, vibrant colors' },
   { tKey: 'video.styleRealistic',   value: 'realistic',   suffix: 'photorealistic, 4K' },
 ]
-
-async function blobToDataUrl(blob) {
-  return new Promise(resolve => {
-    const r = new FileReader()
-    r.onload = () => resolve(r.result)
-    r.readAsDataURL(blob)
-  })
-}
-
-// Calls HuggingFace directly from the browser — avoids Vercel's 60s function timeout.
-async function fetchVideoClientSide(prompt, onStatus, strings) {
-  const MAX = 3
-  let lastErr = strings.errorUnknown
-
-  for (let attempt = 0; attempt < MAX; attempt++) {
-    if (attempt > 0) {
-      onStatus(strings.retrying(attempt + 1, MAX))
-      await new Promise(r => setTimeout(r, 20000))
-    } else {
-      onStatus(strings.generating)
-    }
-
-    try {
-      const res = await fetch(HF_VIDEO_URL, {
-        method: 'POST',
-        headers: { 'X-Wait-For-Model': 'true', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ inputs: prompt }),
-        signal: AbortSignal.timeout(180000),
-      })
-
-      if (!res.ok) {
-        const body = await res.text().catch(() => '')
-        if (res.status === 503 || body.toLowerCase().includes('loading')) {
-          lastErr = strings.modelLoading
-          continue
-        }
-        if (res.status === 429) throw new Error(strings.errorRateLimit)
-        lastErr = strings.errorServer(res.status)
-        continue
-      }
-
-      const ct = res.headers.get('content-type') || ''
-      if (!ct.includes('video')) { lastErr = strings.errorUnexpected; continue }
-
-      const blob = await res.blob()
-      return await blobToDataUrl(blob)
-    } catch (err) {
-      if (err.name === 'TimeoutError') { lastErr = strings.errorTimeout; continue }
-      if (err.name === 'AbortError')   { lastErr = strings.errorTimeout; continue }
-      throw err
-    }
-  }
-
-  throw new Error(lastErr)
-}
 
 export default function VideoGenPage() {
   const { user } = useAuth()
@@ -77,13 +21,13 @@ export default function VideoGenPage() {
   const [items, setItems]   = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(`vid_history_${user?.id}`) || '[]')
-      return saved.map(it => it.status === 'loading' ? { ...it, status: 'error', loadStatus: '' } : it)
+      return saved.map(it => it.status === 'loading' ? { ...it, status: 'error', error: 'Interrupted' } : it)
     } catch {
       return []
     }
   })
 
-  // Keep last 4 videos — videos are large, stay within localStorage quota
+  // Keep last 4 videos to stay within localStorage quota
   useEffect(() => {
     try {
       const toStore = items.filter(it => it.status !== 'loading').slice(0, 4)
@@ -91,33 +35,24 @@ export default function VideoGenPage() {
     } catch { /* quota exceeded */ }
   }, [items, storageKey])
 
-  const tStrings = useCallback(() => ({
-    generating:     t('video.generating'),
-    retrying:       (n, max) => t('video.retrying', { n, max }),
-    modelLoading:   t('video.modelLoading'),
-    errorServer:    (code) => t('video.errorServer', { code }),
-    errorUnexpected: t('video.errorUnexpected'),
-    errorTimeout:   t('video.errorTimeout'),
-    errorRateLimit: t('video.errorRateLimit'),
-    errorUnknown:   t('video.errorUnknown'),
-  }), [t])
-
   const runGenerate = useCallback((id, fullPrompt) => {
-    const onStatus = msg =>
-      setItems(prev => prev.map(it => it.id === id ? { ...it, loadStatus: msg } : it))
+    setItems(prev => prev.map(it =>
+      it.id === id ? { ...it, loadStatus: t('video.generating') } : it
+    ))
 
-    fetchVideoClientSide(fullPrompt, onStatus, tStrings())
-      .then(dataUrl => {
+    generateVideo({ prompt: fullPrompt })
+      .then(res => {
         setItems(prev => prev.map(it =>
-          it.id === id ? { ...it, url: dataUrl, status: 'done', loadStatus: '' } : it
+          it.id === id ? { ...it, url: res.data.video_url, status: 'done', loadStatus: '' } : it
         ))
       })
       .catch(err => {
+        const msg = err.response?.data?.detail || err.message || t('video.errorUnknown')
         setItems(prev => prev.map(it =>
-          it.id === id ? { ...it, status: 'error', loadStatus: '', error: err.message } : it
+          it.id === id ? { ...it, status: 'error', loadStatus: '', error: msg } : it
         ))
       })
-  }, [tStrings])
+  }, [t])
 
   const handleGenerate = () => {
     if (!prompt.trim()) return
