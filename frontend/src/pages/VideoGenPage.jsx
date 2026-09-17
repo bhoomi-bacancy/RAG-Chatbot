@@ -116,6 +116,7 @@ export default function VideoGenPage() {
       const frameUrls = []
       for (let i = 0; i < numFrames; i++) {
         onStatus(t('video.fetchingFrame', { n: i + 1, total: numFrames }))
+        if (i > 0) await new Promise(r => setTimeout(r, 3000)) // avoid 429 rate limit
         const dataUrl = await fetchFrameAsDataUrl(fullPrompt, sizeObj.pw, sizeObj.ph)
         frameUrls.push(dataUrl)
       }
