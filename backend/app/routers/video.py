@@ -9,7 +9,10 @@ from app.config import settings
 
 router = APIRouter()
 
-HF_VIDEO_URL = "https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b"
+# Primary model — short clips, fast generation
+HF_VIDEO_PRIMARY = "https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b"
+# Fallback model — same architecture, different instance
+HF_VIDEO_FALLBACK = "https://api-inference.huggingface.co/models/ali-vilab/text-to-video-ms-1.7b"
 
 
 class VideoGenerateRequest(BaseModel):
@@ -23,36 +26,33 @@ def _hf_headers() -> dict:
     return headers
 
 
-async def _generate_video(prompt: str, max_retries: int = 3) -> bytes:
+async def _call_hf_video(url: str, prompt: str, max_retries: int = 4) -> bytes:
     last_error = "Unknown error"
 
-    async with httpx.AsyncClient(timeout=240, follow_redirects=True) as client:
+    async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
         for attempt in range(max_retries):
             try:
-                resp = await client.post(
-                    HF_VIDEO_URL,
-                    headers=_hf_headers(),
-                    json={"inputs": prompt},
-                )
+                resp = await client.post(url, headers=_hf_headers(), json={"inputs": prompt})
             except httpx.TimeoutException:
                 last_error = "Request timed out"
                 await asyncio.sleep(10)
                 continue
 
             ct = resp.headers.get("content-type", "")
-            # HuggingFace may return video/mp4 or application/octet-stream
             if resp.status_code == 200 and ("video" in ct or "octet-stream" in ct):
                 return resp.content
 
             body = resp.text[:400]
             is_busy = (
                 resp.status_code == 503
-                or "loading" in body.lower()
+                or "Errno 16" in body
                 or "busy" in body.lower()
+                or "loading" in body.lower()
+                or "currently loading" in body.lower()
             )
             if is_busy:
-                wait = 20 + attempt * 15
-                last_error = f"Model loading (attempt {attempt + 1}/{max_retries}), retrying in {wait}s"
+                wait = 15 + attempt * 10   # 15s, 25s, 35s, 45s
+                last_error = f"Model busy (attempt {attempt + 1}/{max_retries}), retrying in {wait}s"
                 await asyncio.sleep(wait)
                 continue
 
@@ -62,10 +62,7 @@ async def _generate_video(prompt: str, max_retries: int = 3) -> bytes:
             last_error = f"HuggingFace returned {resp.status_code}: {body}"
             break
 
-    raise HTTPException(
-        status_code=503,
-        detail=f"Video model unavailable after {max_retries} attempts: {last_error}",
-    )
+    raise HTTPException(status_code=503, detail=last_error)
 
 
 @router.post("/generate")
@@ -75,7 +72,14 @@ async def generate_video(
 ):
     """Generate a short video clip from a text prompt via HuggingFace (free)."""
     try:
-        video_bytes = await _generate_video(request.prompt)
+        # Try primary model first, fall back to secondary if unavailable
+        try:
+            video_bytes = await _call_hf_video(HF_VIDEO_PRIMARY, request.prompt)
+        except HTTPException as e:
+            if e.status_code != 503:
+                raise
+            video_bytes = await _call_hf_video(HF_VIDEO_FALLBACK, request.prompt)
+
         out_b64 = base64.b64encode(video_bytes).decode()
         return {"video_url": f"data:video/mp4;base64,{out_b64}"}
     except HTTPException:
