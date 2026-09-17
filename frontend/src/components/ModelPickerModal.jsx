@@ -5,15 +5,14 @@ export const PROVIDERS = [
   {
     id: 'groq',
     name: 'Groq',
-    tagline: 'Free · Compound, GPT OSS',
+    tagline: 'Free · Llama 3.3, Mixtral',
     free: true,
     accentCls: 'text-orange-600 bg-orange-50 border-orange-200',
     dotCls: 'bg-orange-500',
     models: [
-      { id: 'groq/compound-mini',  name: 'Compound Mini',  badge: 'Default',  badgeCls: 'bg-orange-100 text-orange-700',  Icon: Zap,   desc: 'Fast everyday queries',        vision: false },
-      { id: 'groq/compound',       name: 'Compound',       badge: 'Balanced', badgeCls: 'bg-blue-100 text-blue-700',      Icon: Brain, desc: 'Better reasoning + tool use',  vision: false },
-      { id: 'openai/gpt-oss-20b',  name: 'GPT OSS 20B',   badge: 'Fast',     badgeCls: 'bg-sky-100 text-sky-700',        Icon: Zap,   desc: 'OpenAI OSS — fast & efficient', vision: false },
-      { id: 'openai/gpt-oss-120b', name: 'GPT OSS 120B',  badge: 'Powerful', badgeCls: 'bg-indigo-100 text-indigo-700',  Icon: Brain, desc: 'OpenAI OSS — most capable',    vision: false },
+      { id: 'groq/llama-3.3-70b-versatile', name: 'Llama 3.3 70B', badge: 'Best',     badgeCls: 'bg-orange-100 text-orange-700',  Icon: Brain, desc: 'Most capable free model',        vision: false },
+      { id: 'groq/llama-3.1-8b-instant',    name: 'Llama 3.1 8B',  badge: 'Default',  badgeCls: 'bg-green-100 text-green-700',    Icon: Zap,   desc: 'Fast & lightweight — default',   vision: false },
+      { id: 'groq/mixtral-8x7b-32768',      name: 'Mixtral 8x7B',  badge: 'Balanced', badgeCls: 'bg-blue-100 text-blue-700',      Icon: Cpu,   desc: 'Balanced speed and quality',     vision: false },
     ],
   },
   {

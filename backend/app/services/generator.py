@@ -48,11 +48,12 @@ Answer the user's question helpfully and clearly.
 # ── Provider routing ───────────────────────────────────────────────────────────
 
 def get_provider(model: str) -> str:
-    # Groq-namespaced models (groq/, openai/gpt-oss-*, qwen/, etc.) all go via Groq API
+    # Groq-namespaced models all go via Groq API
     if model.startswith("groq/"):       return "groq"
-    if model.startswith("openai/"):     return "groq"   # gpt-oss-* are Groq-hosted
-    if model.startswith("compound"):    return "groq"
     if model.startswith("meta-llama/"): return "groq"
+    if model.startswith("llama"):       return "groq"
+    if model.startswith("mixtral"):     return "groq"
+    if model.startswith("gemma"):       return "groq"
     # User-provided keys for other providers
     if model.startswith("gpt-"):        return "openai"
     if model.startswith("claude-"):     return "anthropic"

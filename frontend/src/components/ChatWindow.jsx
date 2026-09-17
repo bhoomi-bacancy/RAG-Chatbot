@@ -177,7 +177,7 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
   const [streaming, setStreaming]         = useState(false)
   const [attachedFiles, setAttachedFiles] = useState([])
   const [loadingChat, setLoadingChat]     = useState(false)
-  const [selectedModel, setSelectedModel] = useState('groq/compound-mini')
+  const [selectedModel, setSelectedModel] = useState('groq/llama-3.1-8b-instant')
   const [showModelPicker, setShowModelPicker] = useState(false)
   const [connectedProviders, setConnectedProviders] = useState([])
   const [connectedProviderKeys, setConnectedProviderKeys] = useState({})
@@ -609,7 +609,7 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
     // If current model belongs to disconnected provider, reset to default
     const providerMeta = PROVIDERS.find(p => p.id === providerId)
     if (providerMeta?.models.some(m => m.id === selectedModel)) {
-      setSelectedModel('groq/compound-mini')
+      setSelectedModel('groq/llama-3.1-8b-instant')
     }
   }
 
