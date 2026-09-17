@@ -540,9 +540,12 @@ export default function Sidebar({
         )}
       </div>
 
+      {/* Middle section — always flex-1 so Language+User stay pinned at bottom */}
+      <div className="flex-1 min-h-0 flex flex-col">
+
       {/* Chat list */}
       {currentView === 'chat' && (
-        <div className="flex-1 overflow-y-auto py-2">
+        <div className="flex-1 overflow-y-auto py-2 sidebar-scroll">
           {/* New folder inline input */}
           {creatingFolder && (
             <div className="mx-2 mb-2 flex items-center gap-1.5 px-2 py-1">
@@ -637,8 +640,7 @@ export default function Sidebar({
         </div>
       )}
 
-      {/* Spacer for image generation / diagrams / memory / gif-gen view */}
-      {(currentView === 'image-edit' || currentView === 'diagrams' || currentView === 'memory' || currentView === 'video-gen') && <div className="flex-1" />}
+      </div>{/* end middle flex-1 wrapper */}
 
       {/* Language + Theme */}
       <div className="px-2 pb-1 flex items-center gap-1">
