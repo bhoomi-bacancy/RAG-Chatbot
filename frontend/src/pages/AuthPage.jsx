@@ -147,13 +147,9 @@ export default function AuthPage() {
     setLoading(true); setError('')
     try {
       if (mode === 'forgot') { await forgotPassword(form.email.trim()); setMode('forgot-sent'); return }
-      if (mode === 'register') {
-        await apiRegister(form.email.trim(), form.name.trim(), form.password)
-        switchMode('login')
-        setSuccess('Account created! Please sign in.')
-        return
-      }
-      const { data } = await apiLogin(form.email.trim(), form.password)
+      const { data } = mode === 'login'
+        ? await apiLogin(form.email.trim(), form.password)
+        : await apiRegister(form.email.trim(), form.name.trim(), form.password)
       login(data.access_token, data.user)
     } catch (err) {
       setError(err.response?.data?.detail || t('auth.error_generic'))
