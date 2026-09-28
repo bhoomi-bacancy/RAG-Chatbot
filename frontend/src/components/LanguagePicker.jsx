@@ -2,9 +2,11 @@ import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Globe } from 'lucide-react'
 import { LANGUAGES } from '../i18n'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function LanguagePicker() {
   const { i18n } = useTranslation()
+  const { user } = useAuth()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -18,7 +20,8 @@ export default function LanguagePicker() {
 
   const select = code => {
     i18n.changeLanguage(code)
-    localStorage.setItem('lang', code)
+    const key = user?.id ? `lang_${user.id}` : 'lang'
+    localStorage.setItem(key, code)
     document.documentElement.dir = code === 'ar' ? 'rtl' : 'ltr'
     setOpen(false)
   }

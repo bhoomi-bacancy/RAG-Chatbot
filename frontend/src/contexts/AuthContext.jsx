@@ -1,5 +1,12 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { getMe, logout as apiLogout } from '../api/client'
+import i18n from '../i18n'
+
+const applyUserLang = (userId) => {
+  const lang = localStorage.getItem(`lang_${userId}`) || 'en'
+  i18n.changeLanguage(lang)
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'
+}
 
 const AuthContext = createContext(null)
 
@@ -14,7 +21,7 @@ export function AuthProvider({ children }) {
       return
     }
     getMe()
-      .then(({ data }) => setUser(data))
+      .then(({ data }) => { setUser(data); applyUserLang(data.id) })
       .catch(() => {
         localStorage.removeItem('inkira_token')
         localStorage.removeItem('inkira_user')
@@ -29,6 +36,8 @@ export function AuthProvider({ children }) {
         window.__authExpired = false
         apiLogout()
         setUser(null)
+        i18n.changeLanguage('en')
+        document.documentElement.dir = 'ltr'
       }
     }, 1000)
     return () => clearInterval(interval)
@@ -38,11 +47,14 @@ export function AuthProvider({ children }) {
     localStorage.setItem('inkira_token', token)
     localStorage.setItem('inkira_user', JSON.stringify(userData))
     setUser(userData)
+    applyUserLang(userData.id)
   }
 
   const logout = () => {
     apiLogout()
     setUser(null)
+    i18n.changeLanguage('en')
+    document.documentElement.dir = 'ltr'
   }
 
   const updateUser = updates => setUser(prev => ({ ...prev, ...updates }))
