@@ -120,9 +120,10 @@ export default function AuthPage() {
   const [loading, setLoading]   = useState(false)
   const [ssoLoading, setSso]    = useState('')
   const [error, setError]       = useState('')
+  const [success, setSuccess]   = useState('')
 
   const set = field => e => setForm(p => ({ ...p, [field]: e.target.value }))
-  const switchMode = m => { setMode(m); setError(''); setForm(p => ({ ...p, name: '', password: '' })) }
+  const switchMode = m => { setMode(m); setError(''); setSuccess(''); setForm(p => ({ ...p, name: '', password: '' })) }
 
   const validate = () => {
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -146,9 +147,13 @@ export default function AuthPage() {
     setLoading(true); setError('')
     try {
       if (mode === 'forgot') { await forgotPassword(form.email.trim()); setMode('forgot-sent'); return }
-      const { data } = mode === 'login'
-        ? await apiLogin(form.email.trim(), form.password)
-        : await apiRegister(form.email.trim(), form.name.trim(), form.password)
+      if (mode === 'register') {
+        await apiRegister(form.email.trim(), form.name.trim(), form.password)
+        switchMode('login')
+        setSuccess('Account created! Please sign in.')
+        return
+      }
+      const { data } = await apiLogin(form.email.trim(), form.password)
       login(data.access_token, data.user)
     } catch (err) {
       setError(err.response?.data?.detail || t('auth.error_generic'))
@@ -395,6 +400,13 @@ export default function AuthPage() {
                   className="text-xs text-zinc-400 hover:text-orange-500 transition font-medium">
                   {t('auth.forgotPassword')}
                 </button>
+              </div>
+            )}
+
+            {success && (
+              <div className="flex items-start gap-2.5 text-sm text-green-700 bg-green-50 border border-green-100 rounded-xl px-3.5 py-2.5">
+                <CheckCircle className="w-4 h-4 mt-0.5 shrink-0 text-green-500" />
+                <span>{success}</span>
               </div>
             )}
 
