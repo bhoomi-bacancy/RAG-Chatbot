@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { ArrowUp, Paperclip, X, Loader2, Sparkles, MessageSquare, FileText, ChevronDown, ImagePlus, Menu, Download, Share2, Check, Link } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import i18n from '../i18n'
-import { streamChat, getChat, createChat, uploadDocument, renameChat, getConfiguredProviders, getMyProviderKeys, deleteProviderKey, translateMessages, getSuggestions, shareChat, unshareChat, extractMemory } from '../api/client'
+import { streamChat, getChat, createChat, uploadDocument, renameChat, getConfiguredProviders, getMyProviderKeys, deleteProviderKey, translateMessages, getSuggestions, extractMemory } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import MessageBubble from './MessageBubble'
 import ModelPickerModal, { MODELS, PROVIDERS } from './ModelPickerModal'
@@ -61,40 +61,14 @@ function AttachmentChip({ name, size, onRemove }) {
 
 /* ── ShareModal ────────────────────────────────────────────────────────────── */
 function ShareModal({ chatId, onClose }) {
-  const [token, setToken]   = useState(null)
-  const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    shareChat(chatId)
-      .then(({ data }) => setToken(data.token))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [chatId])
-
-  const shareLink = token ? `${window.location.origin}/shared/${token}` : ''
+  const shareLink = `${window.location.origin}/shared/${chatId}`
 
   const handleCopy = () => {
     navigator.clipboard.writeText(shareLink).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2500)
     })
-  }
-
-  const handleUnshare = async () => {
-    try {
-      await unshareChat(chatId)
-      setToken(null)
-    } catch {}
-  }
-
-  const handleReshare = async () => {
-    setLoading(true)
-    try {
-      const { data } = await shareChat(chatId)
-      setToken(data.token)
-    } catch {}
-    setLoading(false)
   }
 
   return (
@@ -120,50 +94,24 @@ function ShareModal({ chatId, onClose }) {
           </div>
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-6">
-            <Loader2 className="w-5 h-5 text-orange-400 animate-spin" />
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2.5">
+            <Link className="w-4 h-4 text-zinc-400 shrink-0" />
+            <input
+              readOnly
+              value={shareLink}
+              className="flex-1 bg-transparent text-xs text-zinc-600 dark:text-zinc-400 outline-none truncate"
+              onFocus={e => e.target.select()}
+            />
           </div>
-        ) : token ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2.5">
-              <Link className="w-4 h-4 text-zinc-400 shrink-0" />
-              <input
-                readOnly
-                value={shareLink}
-                className="flex-1 bg-transparent text-xs text-zinc-600 dark:text-zinc-400 outline-none truncate"
-                onFocus={e => e.target.select()}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleCopy}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium py-2.5 rounded-xl transition"
-              >
-                {copied ? <Check className="w-4 h-4" /> : <Link className="w-4 h-4" />}
-                {copied ? 'Copied!' : 'Copy link'}
-              </button>
-              <button
-                onClick={handleUnshare}
-                className="px-3 py-2.5 rounded-xl text-sm text-zinc-500 dark:text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition"
-                title="Remove share link"
-              >
-                Remove
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">This chat is not currently shared.</p>
-            <button
-              onClick={handleReshare}
-              className="w-full flex items-center justify-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium py-2.5 rounded-xl transition"
-            >
-              <Share2 className="w-4 h-4" />
-              Create share link
-            </button>
-          </div>
-        )}
+          <button
+            onClick={handleCopy}
+            className="w-full flex items-center justify-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium py-2.5 rounded-xl transition"
+          >
+            {copied ? <Check className="w-4 h-4" /> : <Link className="w-4 h-4" />}
+            {copied ? 'Copied!' : 'Copy link'}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -177,7 +125,7 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
   const [streaming, setStreaming]         = useState(false)
   const [attachedFiles, setAttachedFiles] = useState([])
   const [loadingChat, setLoadingChat]     = useState(false)
-  const [selectedModel, setSelectedModel] = useState('groq/llama-3.1-8b-instant')
+  const [selectedModel, setSelectedModel] = useState('groq/openai/gpt-oss-20b')
   const [showModelPicker, setShowModelPicker] = useState(false)
   const [connectedProviders, setConnectedProviders] = useState([])
   const [connectedProviderKeys, setConnectedProviderKeys] = useState({})
@@ -609,7 +557,7 @@ export default function ChatWindow({ chatId, onChatCreated, chats, setChats, onO
     // If current model belongs to disconnected provider, reset to default
     const providerMeta = PROVIDERS.find(p => p.id === providerId)
     if (providerMeta?.models.some(m => m.id === selectedModel)) {
-      setSelectedModel('groq/llama-3.1-8b-instant')
+      setSelectedModel('groq/openai/gpt-oss-20b')
     }
   }
 
